@@ -38,6 +38,9 @@ idx_1
 idx_2 
 ```
 
+## TODO
+- visualize event and color camera extrinsics for sanity check.
+
 
 # Code Acknowledgement
 ```
