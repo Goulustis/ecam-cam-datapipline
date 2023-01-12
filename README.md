@@ -28,7 +28,7 @@ scene
 |   |   |   |   cameras.bin
 |   |   scale_pnts.txt               (points selected for finding scene scale)
 |   |   pnt_dist.txt                 (actual length of selected points in real world)
-│   scene.h5                         (the event data of the scene; in metavision v3.0)
+│   events.h5                         (the event data of the scene; in metavision v3.0)
 |   triggers.txt                     (triggers received; on events only; 1 events only)
 ```
 
