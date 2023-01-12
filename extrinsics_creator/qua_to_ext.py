@@ -1,4 +1,7 @@
-from ..colmap_find_scale.read_write_model import read_images_binary
+import sys
+sys.path.append(".")
+
+from colmap_find_scale.read_write_model import read_images_binary
 import numpy as np
 import json
 from tqdm import tqdm
@@ -38,4 +41,4 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output_path", help="path to save extrinsic cameras", default=None)
     args = parser.parse_args()
 
-    main(args.i, args.o)
+    main(args.img_path, args.output_path)
