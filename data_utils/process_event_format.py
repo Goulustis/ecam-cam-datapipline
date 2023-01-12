@@ -162,7 +162,6 @@ def test_read():
 
 
 def process_events_h5(inp_file, out_file):
-    inp_file = "./checker/events.h5"
     reader = H5EventsReader(inp_file)
     runner = iter(reader)
 
@@ -189,6 +188,17 @@ def process_events_h5(inp_file, out_file):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Turn a prophesee 3.0 h5 file to 2.0 h5 file for e2calib')
     parser.add_argument("-i", "--input", help="path to event h5 file", required=True)
-    parser.add_argument("-o", "--output", help="path to processed h5 file", required=True)
+    parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
     args = parser.parse_args()
-    process_events_h5(args.i, args.o)
+    
+    if args.output is None:
+        dir_name = osp.dirname(args.input)
+        basename = osp.basename(args.input)
+        out_file = osp.join(dir_name, "processed_" + basename)
+    else:
+        out_file = args.output
+
+    print("processing events", args.input)
+    process_events_h5(args.input, out_file)
+    print("saving processed events to", out_file)
+    # process_events_h5(args.input, args.output)
