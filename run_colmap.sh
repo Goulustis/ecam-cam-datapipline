@@ -13,8 +13,7 @@ colmap feature_extractor \
 echo matching ...
 
 colmap sequential_matcher \
- --database_path $DATASET_PATH/database.db \
- --SequentialMatching.vocab_tree_path archived/marker_dev_recon/vocab_tree_flickr100K_words32K.bin
+ --database_path $DATASET_PATH/database.db
 
 
 mkdir $DATASET_PATH/sparse
