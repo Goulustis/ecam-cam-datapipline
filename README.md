@@ -26,10 +26,10 @@ scene
 |   |   |   |   images.bin
 |   |   |   |   points3D.bin
 |   |   |   |   cameras.bin
-|   |   scale_pnts.txt
-|   |   pnt_dist.txt
-│   scene.h5
-|   triggers.txt  (triggers received; on events only; 1 events only)
+|   |   scale_pnts.txt               (points selected for finding scene scale)
+|   |   pnt_dist.txt                 (actual length of selected points in real world)
+│   scene.h5                         (the event data of the scene; in metavision v3.0)
+|   triggers.txt                     (triggers received; on events only; 1 events only)
 ```
 
 Inside scale points will have 2 idxs:
