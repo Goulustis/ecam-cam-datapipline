@@ -64,7 +64,7 @@ def main():
 
     e_cams = map_cam(rel_cam, col_cams, scale)
     f = lambda x : osp.dirname(x)
-    save_path = osp.join(f(f(f(args.col_cam_path))), "e_cams.npy")
+    save_path = osp.join(f(f(f(f(args.col_cam_path)))), "e_cams.npy")
     np.save(save_path, e_cams)
 
 if __name__ == "__main__":
