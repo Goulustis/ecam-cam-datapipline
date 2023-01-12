@@ -1,5 +1,5 @@
 import numpy as np
-from .read_write_model import read_points3D_binary
+from read_write_model import read_points3D_binary
 import argparse
 import os.path as osp
 
@@ -34,11 +34,11 @@ def pnt_3d_split(pnts_3d):
     return np.array(idxs), np.stack(locs)
 
 
-def get_neighbors(locs, pnt, eps=0.05):
+def get_neighbors(locs, pnt, eps=0.07):
     """
     find neighbor points in locs
     """
-    cond = np.sqrt(((locs-pnt)**2).sum(axis=-1)) <= eps
+    cond = np.sqrt(((locs-pnt[None])**2).sum(axis=-1)) <= eps
     return locs[cond] 
 
 def read_r_len(r_len_f):
@@ -68,27 +68,27 @@ def find_scale(col_pnt_f, obs_pnt_f, r_len_f):
     c_idx = read_obs_pnt(obs_pnt_f)
     r_len = read_r_len(r_len_f)
 
-    a_pnts = get_neighbors(locs, c_idx[0])
-    b_pnts = get_neighbors(locs, c_idx[1])
+    a_pnts = get_neighbors(locs, pnts_3d[c_idx[0]].xyz)
+    b_pnts = get_neighbors(locs, pnts_3d[c_idx[1]].xyz)
 
     n_use = min(len(a_pnts), len(b_pnts))
     a_pnts = a_pnts[:n_use]
     b_pnts = b_pnts[:n_use]
 
-    return np.sqrt(((a_pnts - b_pnts)**2).sum()).mean()/r_len
+    return np.sqrt(((a_pnts - b_pnts)**2).sum(axis=1)).mean()/r_len
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="finds the scale of colmap scene by sampling surrounding chosen points")
-    parser.add_argument("-c", "--col_pts_path", help="path to point3D.bin file from colmap")
-    parser.add_argument("-p", "--pnt_txt_path", help="txt containing the id of the 3d points in colmap")
-    parser.add_argument("-l", "--len_path", help="a .txt file containing the actual length of the chosen scalingn point")
+    parser.add_argument("-c", "--col_pts_path", help="path to point3D.bin file from colmap",default="data/checker/checker_recon/sparse/0/points3D.bin")
+    parser.add_argument("-p", "--pnt_txt_path", help="txt containing the id of the 3d points in colmap",default="data/checker/checker_recon/scale_pnts.txt")
+    parser.add_argument("-l", "--len_path", help="a .txt file containing the actual length of the chosen scalingn point", default="data/checker/checker_recon/pnt_dist.txt")
     args = parser.parse_args()
 
-    scale = find_scale(args.c, args.p, args.l)
+    scale = find_scale(args.col_pts_path, args.pnt_txt_path, args.len_path)
 
     f_d = lambda x : osp.dirname(x)
-    scale_path = osp.join(f_d(f_d(f_d(args.p))), "colmap_scale.txt")
+    scale_path = osp.join(osp.dirname(args.pnt_txt_path), "colmap_scale.txt")
     
     with open(scale_path, "w") as f:
         f.write(str(scale))
