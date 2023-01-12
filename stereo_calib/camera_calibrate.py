@@ -12,7 +12,7 @@ and modified
 """
 
 class StereoCalibration(object):
-    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=20, st_n=150):
+    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=150, st_n=150):
         """
         grid_size (float): size of grid
         n_use (int): number of frames to use from each camera for calibration
