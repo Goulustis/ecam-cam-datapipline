@@ -12,7 +12,7 @@ and modified
 """
 
 class StereoCalibration(object):
-    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=150, st_n=150):
+    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=20, st_n=150):
         """
         grid_size (float): size of grid
         n_use (int): number of frames to use from each camera for calibration
@@ -135,17 +135,17 @@ if __name__ == '__main__':
     # Description:
     # find R,t such that # R2 = R1@R + t, where R1 is world to cam
     parser = argparse.ArgumentParser(description="find the relative rotation and positions between 2 cameras")
-    parser.add_argument("-f", "--from", help="path to images of camera to find translation from", required=True) # R1
+    parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", required=True) # R1
     parser.add_argument("-t", "--to", help="path to images of camera loc to map to", required=True) # R2
-    parser.add_argument("-s", "--size", help="size of the checkerboard square", default=4.23)
+    parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=4.23)
     parser.add_argument("-o", "--out", help="location to save the relative camera output", default=None)
     args = parser.parse_args()
 
-    if args.o is None:
-        out_path = osp.join(osp.dirname(args.t), "rel_cam.json")
+    if args.out is None:
+        out_path = osp.join(osp.dirname(args.to), "rel_cam.json")
     else:
-        out_path = args.o
-    cal_data = StereoCalibration(args.f, args.to, args.size)
+        out_path = args.out
+    cal_data = StereoCalibration(args.from_imgs, args.to, args.size)
     cam_model = cal_data.camera_model
 
     to_save = {}
