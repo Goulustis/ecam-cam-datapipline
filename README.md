@@ -5,6 +5,8 @@ this repository will turn images and events into a dataset scene
 
 ## installation
 1) install [e2calib](https://github.com/uzh-rpg/e2calib) in the third party directory
+2) For visualization, install [this](https://github.com/Goulustis/exviz)
+3) and open3d
 
 ## Instructions
 The scripts should be runned in the following sequence:
