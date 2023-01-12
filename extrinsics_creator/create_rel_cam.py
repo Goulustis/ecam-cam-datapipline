@@ -4,8 +4,8 @@ from tqdm import tqdm
 import argparse
 import os.path as osp
 
-def read_rel_cam():
-    with open("cam_rel.json", "r") as f:
+def read_rel_cam(cam_rel_path):
+    with open(cam_rel_path, "r") as f:
         data = json.load(f)
     
     for k, v in data.items():
@@ -13,8 +13,8 @@ def read_rel_cam():
     
     return data
 
-def read_col_cam():
-    with open("col_recon/extrinsic_mtx.json", "r") as f:
+def read_col_cam(extrinsics_path):
+    with open(extrinsics_path, "r") as f:
         data = json.load(f)
     
     keys = list(data.keys())
@@ -57,14 +57,14 @@ def main():
     parser.add_argument("-s", "--scale_path", help="path to colmap_scale.txt containing the scale of colmap scene in (unit/{mm, cm, m, ...})")
     args = parser.parse_args()
 
-    rel_cam = read_rel_cam(args.r)
-    col_cams = np.load(args.c)
-    with open(args.s, "r") as f:
+    rel_cam = read_rel_cam(args.rel_cam_path)
+    col_cams = np.load(args.col_cam_path)
+    with open(args.scale_path, "r") as f:
         scale = float(f.readline())
 
     e_cams = map_cam(rel_cam, col_cams, scale)
     f = lambda x : osp.dirname(x)
-    save_path = osp.join(f(f(f(args.c))), "e_cams.npy")
+    save_path = osp.join(f(f(f(args.col_cam_path))), "e_cams.npy")
     np.save(save_path, e_cams)
 
 if __name__ == "__main__":
