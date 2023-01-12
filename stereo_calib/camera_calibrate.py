@@ -133,7 +133,7 @@ class StereoCalibration(object):
 
 if __name__ == '__main__':
     # Description:
-    # find R,t such that # R2 = R1@R + t, where R1 is world to cam
+    # find R,t such that # t2 = R1@R + t, where R1 is world to cam
     parser = argparse.ArgumentParser(description="find the relative rotation and positions between 2 cameras")
     parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", required=True) # R1
     parser.add_argument("-t", "--to", help="path to images of camera loc to map to", required=True) # R2
