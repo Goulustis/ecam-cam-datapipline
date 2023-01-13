@@ -145,22 +145,6 @@ class SceneManager:
     with path.open('rb') as f:
       return imageio.imread(f)
 
-  # def triangulate_pixels(self, pixels):
-  #   """Triangulates the pixels across all cameras in the scene.
-
-  #   Args:
-  #     pixels: the pixels to triangulate. There must be the same number of pixels
-  #       as cameras in the scene.
-
-  #   Returns:
-  #     The 3D points triangulated from the pixels.
-  #   """
-  #   if pixels.shape != (len(self), 2):
-  #     raise ValueError(
-  #         f'The number of pixels ({len(pixels)}) must be equal to the number '
-  #         f'of cameras ({len(self)}).')
-
-  #   return triangulate_pixels(pixels, self.camera_list)
 
   def change_basis(self, axes, center):
     """Change the basis of the scene.
