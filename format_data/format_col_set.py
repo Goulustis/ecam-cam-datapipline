@@ -1,6 +1,6 @@
 # The code is directly taken from the github repo of nerfies
 
-
+from utils import read_triggers
 
 """## Parse Data."""
 
@@ -145,7 +145,6 @@ class SceneManager:
     with path.open('rb') as f:
       return imageio.imread(f)
 
-
   def change_basis(self, axes, center):
     """Change the basis of the scene.
 
@@ -193,16 +192,19 @@ class SceneManager:
 
     return num_filtered
 
+
 parser = argparse.ArgumentParser(description="process colmap into nerfies dataset")
 # parser.add_argument("--img_dir", help="path to images", default=None)
 # parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]")
 # parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=1)
 # parser.add_argument("--target_dir", help="place to save the formatted dataset")
-parser.add_argument("--blurry_per", help="blurry param", type=float, default=0.95)
-parser.add_argument("--img_dir", help="path to images", default="/home/matthew/Videos/checker_png")
+parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
 parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
 parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
-parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formated_checkers")
+parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_checkers")
+parser.add_argument("--blurry_per", help="blurry param", type=float, default=0)
+parser.add_argument("--trigger_path", help="path to event triggers", default="data/checker/triggers.txt")
+parser.add_argument("--t_scale_factor", type=int, help="factor to scale time by", default=1)
 args = parser.parse_args()
 
 if args.img_dir is None:
@@ -216,6 +218,8 @@ target_dir = Path(args.target_dir)
 colmap_image_scale = args.img_scale
 root_dir = Path(args.target_dir)
 
+triggers = read_triggers(args.trigger_path)
+
 # @title Load COLMAP scene.
 import plotly.graph_objs as go
 
@@ -223,6 +227,12 @@ scene_manager = SceneManager.from_pycolmap(
     colmap_dir, 
     img_dir, 
     min_track_length=5)
+
+
+# create timestamp
+img_trig_dic = {}
+for image_id, t in zip(scene_manager.image_ids, triggers):
+  img_trig_dic[image_id] = t
 
 if colmap_image_scale > 1:
   print(f'Scaling COLMAP cameras back to 1x from {colmap_image_scale}x.')
@@ -289,6 +299,16 @@ if blur_filter_perc > 0.0:
   plt.imshow(images[blur_filter_inds[0]])
 else:
   print("not filtering blurry images")
+
+print("filter images out of trigger range")
+remove_ids = sorted(list(set(scene_manager.image_ids) - set(img_trig_dic.keys())))
+# keep one extra, events might end between the frames
+img_trig_dic[remove_ids[0]] = -1
+remove_ids = remove_ids[1:]  
+print("removing out of range image ids", remove_ids)
+num_removed = scene_manager.filter_images(remove_ids)
+print(f"removed {num_removed} out of range images")
+
 """### Face Processing.
 
 This section runs the optional step of computing facial landmarks for the purpose of test camera generation.
@@ -730,20 +750,30 @@ with dataset_json_path.open('w') as f:
 print(f'Saved dataset information to {dataset_json_path}')
 
 # @title Save metadata information to `metadata.json`.
+trig_delta = np.diff(triggers).min()
+trig_st = img_trig_dic[scene_manager.image_ids[0]]
+
+calc_id = lambda img_id : int(np.round((img_trig_dic[img_id] - trig_st)/trig_delta))
+
 import bisect
 
 metadata_json = {}
 for i, image_id in enumerate(train_ids):
   metadata_json[image_id] = {
-      'warp_id': i,
-      'appearance_id': i,
+      'warp_id': calc_id(image_id)*args.t_scale_factor,
+      'appearance_id': calc_id(image_id)*args.t_scale_factor,
       'camera_id': 0,
   }
+  # metadata_json[image_id] = {
+  #     'warp_id': i*args.t_scale_factor,
+  #     'appearance_id': i*args.t_scale_factor,
+  #     'camera_id': 0,
+  # }
 for i, image_id in enumerate(val_ids):
   i = bisect.bisect_left(train_ids, image_id)
   metadata_json[image_id] = {
-      'warp_id': i,
-      'appearance_id': i,
+      'warp_id': calc_id(image_id)*args.t_scale_factor,
+      'appearance_id': calc_id(image_id)*args.t_scale_factor,
       'camera_id': 0,
   }
 
@@ -759,8 +789,11 @@ camera_dir.mkdir(exist_ok=True, parents=True)
 for item_id, camera in new_scene_manager.camera_dict.items():
   camera_path = camera_dir / f'{item_id}.json'
   print(f'Saving camera to {camera_path!s}')
+  cam_json = camera_json = camera.to_json()
+  cam_json['t'] = img_trig_dic[item_id]  # item_id is same as image_id
   with camera_path.open('w') as f:
-    json.dump(camera.to_json(), f, indent=2)
+    # json.dump(camera.to_json(), f, indent=2)
+    json.dump(cam_json, f, indent=2)
 
 # @title Save test cameras.
 
@@ -776,8 +809,15 @@ for test_path_name, test_cameras in camera_paths.items():
     with camera_path.open('w') as f:
       json.dump(camera.to_json(), f, indent=2)
 
-"""## Training
 
- * You are now ready to train a Nerfie!
- * Head over to the [training Colab](https://colab.sandbox.google.com/github/google/nerfies/blob/main/notebooks/Nerfies_Training.ipynb) for a basic demo.
-"""
+# sanity check for metadata
+ids = []
+for k, v in metadata_json.items():
+  ids.append(v["appearance_id"])
+
+seen = {}
+for id in ids:
+  if seen.get(id) is None:
+    seen[id] = True
+  else:
+    Exception("duplicate id!!! bug!!!")
