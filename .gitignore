@@ -5,6 +5,6 @@
 *.ipynb
 *.h5
 *.bin
-*.txt
 *.npy
 *.pyc
+data/*
