@@ -214,6 +214,7 @@ parser = argparse.ArgumentParser(description="process colmap into nerfies datase
 # parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]")
 # parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=1)
 # parser.add_argument("--target_dir", help="place to save the formatted dataset")
+parser.add_argument("--blurry_per", help="blurry param", type=float, default=0.95)
 parser.add_argument("--img_dir", help="path to images", default="/home/matthew/Videos/checker_png")
 parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
 parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
@@ -278,7 +279,8 @@ def variance_of_laplacian(image: np.ndarray) -> np.ndarray:
   return cv2.Laplacian(gray, cv2.CV_64F).var()
 
 
-blur_filter_perc = 95.0 # @param {type: 'number'}
+# blur_filter_perc = 95.0 # @param {type: 'number'}
+blur_filter_perc = args.blurry_per # @param {type: 'number'}
 if blur_filter_perc > 0.0:
   print('Loading images.')
   images = list(map(scene_manager.load_image, scene_manager.image_ids))
@@ -301,7 +303,8 @@ if blur_filter_perc > 0.0:
   plt.subplot(122)
   plt.title('Most blurry')
   plt.imshow(images[blur_filter_inds[0]])
-
+else:
+  print("not filtering blurry images")
 """### Face Processing.
 
 This section runs the optional step of computing facial landmarks for the purpose of test camera generation.
