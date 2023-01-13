@@ -7,12 +7,6 @@ TARG_DIR=data/formatted_checkers                    # location to save formatted
 TRIGGER_PATH=data/checker/triggers.txt
 T_SCALE_FACTOR=1
 
-echo $IMG_DIR
-echo $COLMAP_DIR
-echo $IMG_SCALE
-echo $TARG_DIR
-echo $TRIGGER_PATH
-echo $T_SCALE_FACTOR
 python format_data/format_col_set.py --img_dir $IMG_DIR \
                                      --colmap_dir $COLMAP_DIR \
                                      --img_scale $IMG_SCALE \
