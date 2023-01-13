@@ -13,6 +13,6 @@ python format_data/format_col_set.py --img_dir $IMG_DIR \
 
 cp -r $IMG_DIR $TARG_DIR
 cd $TARG_DIR
-mv $(basname $IMG_DIR) 1x
+mv $(basename $IMG_DIR) 1x
 mkdir rgb
 mv 1x rgb
