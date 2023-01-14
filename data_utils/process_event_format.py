@@ -29,7 +29,7 @@ try:
 except BaseException:
     pass
 import numpy as np
-# from metavision_sdk_base import EventCD
+
 EventCD = np.dtype({'names':['x','y','p','t'], 
                     'formats':['<u2','<u2','i2', '<i8'],
                     'offsets':[0,2,4,8], 
@@ -161,20 +161,23 @@ def test_read():
     return next(runner)
 
 
-def process_events_h5(inp_file, out_file, save_np = False):
+def process_events_h5(inp_file, out_file, save_np = True):
     reader = H5EventsReader(inp_file)
     runner = iter(reader)
 
     x, y, t, p = [], [], [], []
-
+    np_events = []
     for event in tqdm(runner, total=len(reader)):
         x.append(event['x'])
         y.append(event['y'])
         t.append(event['t'])
         p.append(event['p'])
+
+        np_events.append(event)
     
     concat = lambda x : np.concatenate(x)
     x, y, t, p = concat(x), concat(y), concat(t), concat(p)
+    np_events = concat(np_events)
     
     with h5py.File(out_file, "w") as hf:
         hf.create_dataset('x', data=x, shape=x.shape)
@@ -183,13 +186,15 @@ def process_events_h5(inp_file, out_file, save_np = False):
         hf.create_dataset('p', data=p, shape=p.shape, dtype=np.uint8)
     
     if save_np:
-        events = np.stack([x,y,t,p], axis = -1)
-        np.save(osp.join(osp.dirname(out_file), "events.npy"), events)
-
+        np_event_path = osp.join(osp.dirname(out_file), "events.npy")
+        print("saving", np_event_path)
+        np.save(np_event_path, np_events)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Turn a prophesee 3.0 h5 file to 2.0 h5 file for e2calib')
-    parser.add_argument("-i", "--input", help="path to event h5 file", required=True)
+    # parser.add_argument("-i", "--input", help="path to event h5 file", required=True)
+    # parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
+    parser.add_argument("-i", "--input", help="path to event h5 file", default="data/checker/events.h5")
     parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
     args = parser.parse_args()
     
