@@ -161,7 +161,7 @@ def test_read():
     return next(runner)
 
 
-def process_events_h5(inp_file, out_file):
+def process_events_h5(inp_file, out_file, save_np = False):
     reader = H5EventsReader(inp_file)
     runner = iter(reader)
 
@@ -176,12 +176,16 @@ def process_events_h5(inp_file, out_file):
     concat = lambda x : np.concatenate(x)
     x, y, t, p = concat(x), concat(y), concat(t), concat(p)
     
-    p_tmp = inp_file.split("/")
     with h5py.File(out_file, "w") as hf:
         hf.create_dataset('x', data=x, shape=x.shape)
         hf.create_dataset('y', data=y, shape=y.shape)
         hf.create_dataset('t', data=t, shape=t.shape)
         hf.create_dataset('p', data=p, shape=p.shape, dtype=np.uint8)
+    
+    if save_np:
+        events = np.stack([x,y,t,p], axis = -1)
+        np.save(osp.join(osp.dirname(out_file), "events.npy"), events)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Turn a prophesee 3.0 h5 file to 2.0 h5 file for e2calib')
