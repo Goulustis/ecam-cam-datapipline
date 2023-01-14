@@ -177,8 +177,6 @@ def process_events_h5(inp_file, out_file):
     x, y, t, p = concat(x), concat(y), concat(t), concat(p)
     
     p_tmp = inp_file.split("/")
-    f_path, f_name = "/".join(p_tmp[:-1]), p_tmp[-1]
-    # save_path = osp.join(f_path, "processed_" + f_name)
     with h5py.File(out_file, "w") as hf:
         hf.create_dataset('x', data=x, shape=x.shape)
         hf.create_dataset('y', data=y, shape=y.shape)
@@ -201,4 +199,3 @@ if __name__ == "__main__":
     print("processing events", args.input)
     process_events_h5(args.input, out_file)
     print("saving processed events to", out_file)
-    # process_events_h5(args.input, args.output)
