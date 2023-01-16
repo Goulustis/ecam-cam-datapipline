@@ -6,6 +6,9 @@ import numpy as np
 import json
 import h5py
 import os.path as osp
+from tqdm import tqdm
+import multiprocessing as mp
+from multiprocessing import Pool
 
 
 def read_triggers(path):
@@ -44,16 +47,17 @@ def read_events(path, save_np = False, targ_dir = None):
     """
     if ".npy" in path:
         return np.load(path)
-    elif ".h5" in path:
-        with h5py.File(path, "r") as f:
-            xs,ys,ts,ps = [f.get(e).value for e in list("xytp")]
 
-        data = np.array([(x,y,t,p) for x,y,t,p in zip(xs,ys,ts,ps)], dtype=EventCD)
+    elif ".h5" in path:
+        np_path = osp.join(osp.basename(path), "events.npy")
+        if osp.exists(np_path):
+            return np.load(np_path)
+
+        with h5py.File(path, "r") as f:
+            xs,ys,ts,ps = [f[e][:] for e in list("xytp")]
         
-        if save_np and (targ_dir is not None):
-            np.save(osp.join(targ_dir, "events.npy"), data)
-        
-        return data
+        return {"x": xs, "y":ys, "t":ts, "p":ps}
+
     else:
         raise Exception("event file format not supported")
         
