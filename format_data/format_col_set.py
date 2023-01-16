@@ -201,10 +201,10 @@ parser = argparse.ArgumentParser(description="process colmap into nerfies datase
 parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
 parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
 parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
-parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_checkers")
-parser.add_argument("--blurry_per", help="blurry param", type=float, default=0)
+parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_checker/colcam_set")
+parser.add_argument("--blurry_per", help="blurry param used for filtering out blurring images", type=float, default=0)
 parser.add_argument("--trigger_path", help="path to event triggers", default="data/checker/triggers.txt")
-parser.add_argument("--t_scale_factor", type=int, help="factor to scale time by", default=1)
+parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/formatted_checker/ecam_set/trig_ids.npy")
 args = parser.parse_args()
 
 if args.img_dir is None:
@@ -219,6 +219,7 @@ colmap_image_scale = args.img_scale
 root_dir = Path(args.target_dir)
 
 triggers = read_triggers(args.trigger_path)
+trig_ids = np.load(args.trig_ids_path)
 
 # @title Load COLMAP scene.
 import plotly.graph_objs as go
@@ -229,10 +230,12 @@ scene_manager = SceneManager.from_pycolmap(
     min_track_length=5)
 
 
-# create timestamp
+# create timestamp dic
 img_trig_dic = {}
-for image_id, t in zip(scene_manager.image_ids, triggers):
-  img_trig_dic[image_id] = t
+img_trig_id_dic = {}
+for image_id, trig_t, trig_id in zip(scene_manager.image_ids, triggers, trig_ids):
+  img_trig_dic[image_id] = int(trig_t)
+  img_trig_id_dic[image_id] = int(trig_id) 
 
 if colmap_image_scale > 1:
   print(f'Scaling COLMAP cameras back to 1x from {colmap_image_scale}x.')
@@ -302,8 +305,16 @@ else:
 
 print("filter images out of trigger range")
 remove_ids = sorted(list(set(scene_manager.image_ids) - set(img_trig_dic.keys())))
+
+
+#TODO: remove the black images
+
 # keep one extra, events might end between the frames
-img_trig_dic[remove_ids[0]] = -1
+# add some definition for the last image  <----------------------------- watch this out.... bad feeling for this.....
+img_trig_dic[remove_ids[0]] = np.diff(triggers)[0]
+img_trig_id_dic[remove_ids[0]] = int(trig_ids.max() + 1)
+
+
 remove_ids = remove_ids[1:]  
 print("removing out of range image ids", remove_ids)
 num_removed = scene_manager.filter_images(remove_ids)
@@ -760,20 +771,16 @@ import bisect
 metadata_json = {}
 for i, image_id in enumerate(train_ids):
   metadata_json[image_id] = {
-      'warp_id': calc_id(image_id)*args.t_scale_factor,
-      'appearance_id': calc_id(image_id)*args.t_scale_factor,
+      'warp_id': img_trig_id_dic[image_id],
+      'appearance_id': img_trig_id_dic[image_id],
       'camera_id': 0,
   }
-  # metadata_json[image_id] = {
-  #     'warp_id': i*args.t_scale_factor,
-  #     'appearance_id': i*args.t_scale_factor,
-  #     'camera_id': 0,
-  # }
+
 for i, image_id in enumerate(val_ids):
   i = bisect.bisect_left(train_ids, image_id)
   metadata_json[image_id] = {
-      'warp_id': calc_id(image_id)*args.t_scale_factor,
-      'appearance_id': calc_id(image_id)*args.t_scale_factor,
+      'warp_id': img_trig_id_dic[image_id],
+      'appearance_id': img_trig_id_dic[image_id],
       'camera_id': 0,
   }
 
