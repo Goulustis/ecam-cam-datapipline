@@ -34,7 +34,7 @@ def read_ecam_intrinsics(path, cam_i = 2):
     
     return np.array(data[f"M{cam_i}"]), data[f"dist{cam_i}"][0]
 
-def read_events(path, save_np = False):
+def read_events(path, save_np = False, targ_dir = None):
     """
     input:
         path (str): path to either a h5 or npy 
@@ -49,8 +49,9 @@ def read_events(path, save_np = False):
             xs,ys,ts,ps = [f.get(e).value for e in list("xytp")]
 
         data = np.array([(x,y,t,p) for x,y,t,p in zip(xs,ys,ts,ps)], dtype=EventCD)
-        if save_np:
-            np.save(osp.join(osp.dirname(path), "events.npy"), data)
+        
+        if save_np and (targ_dir is not None):
+            np.save(osp.join(targ_dir, "events.npy"), data)
         
         return data
     else:
