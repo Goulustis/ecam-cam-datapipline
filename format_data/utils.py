@@ -1,7 +1,6 @@
 import sys
 sys.path.append(".")
 
-from data_utils.process_event_format import EventCD
 import numpy as np
 import json
 import h5py
