@@ -52,7 +52,7 @@ def create_camera_extrinsics(extrinsic_dir, ecams, triggers, intr_mtx, dist):
         targ_cam_path = osp.join(extrinsic_dir, str(i).zfill(6) + ".json")
         print("saving to", targ_cam_path)
         cam_json = camera.to_json()
-        cam_json["t"] = t
+        cam_json["t"] = int(t)
         with open(targ_cam_path, "w") as f:
             json.dump(cam_json, f, indent=2)
 
@@ -67,8 +67,8 @@ def write_metadata(eimgs_ids, targ_dir):
     metadata = {}
 
     for i, id in enumerate(eimgs_ids):
-        metadata[str(i).zfill(6)] = {"warp_id":id,
-                                     "appearence_id":id,
+        metadata[str(i).zfill(6)] = {"warp_id":int(id),
+                                     "appearence_id":int(id),
                                      "camera_id":0}
     
     with open(osp.join(targ_dir, "metadata.json"), "w") as f:
@@ -78,7 +78,7 @@ def write_metadata(eimgs_ids, targ_dir):
 
 def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     os.makedirs(targ_dir, exist_ok=True)
-    event_path = osp.join(data_path, "processed_event.h5") 
+    event_path = osp.join(data_path, "processed_events.h5") 
     ecam_path = osp.join(data_path, "e_cams.npy")  ## extrinsics
 
     # read files
@@ -87,8 +87,11 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     triggers = read_triggers(trig_path)
 
     ## create event images
-    events = read_events(event_path, save_np=True, targ_dir=targ_dir)
-    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers)
+    # events = read_events(event_path, save_np=True, targ_dir=targ_dir)
+    events = None
+    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=False)
+    # np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
+    # del eimgs
     
     ecams = create_interpolated_ecams(eimg_ts, triggers, ecams_trig)
 
@@ -99,14 +102,14 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     # create metadata.json
     write_metadata(eimgs_ids, targ_dir)
 
-    # save the event images
-    np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
+    # # save the event images
+    # np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
 
     # save the trig_ids; make the color camera ids the same
     np.save(osp.join(targ_dir, "trig_ids.npy"), trig_ids)
 
     # copy event to places
-    shutil.copyfile(event_path, targ_dir)
+    shutil.copyfile(event_path, osp.join(targ_dir, osp.basename(event_path)))
 
 
 if __name__ == "__main__":
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     # data_path is for getting the event h5 and the event camera extrinsics
     parser.add_argument("--data_path", help="the path to the dataset format described in readme", default="data/checker")
     parser.add_argument("--ecam_int_path", help="path to rel_cam.json", default="data/checker/rel_cam.json")
-    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_ecam_checker")
+    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_checker/ecam_set")
     parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/checker/triggers.txt")
     # parser.add_argument("--scale",type=int, help="factor to scale the extrinsics by, since color camera could use lower res", default=2) # will not happen, because no change for event camera extrinsics
     args = parser.parse_args()
