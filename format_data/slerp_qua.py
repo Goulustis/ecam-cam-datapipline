@@ -5,8 +5,12 @@ SLERP taken from: https://github.com/apple/ml-neuman/blob/eaa4665908ba1e39de5f40
 """
 import numpy as np
 import math
+from colmap_find_scale.read_write_model import qvec2rotmat, rotmat2qvec
+from collections import namedtuple
 
 _EPS = np.finfo(float).eps * 4.0
+Rmtx = namedtuple("Rmtx", ["flat"])
+
 
 def unit_vector(data, axis=None, out=None):
     """Return ndarray normalized by length, i.e. Euclidean norm, along axis.
@@ -87,3 +91,72 @@ def quaternion_slerp(quat0, quat1, fraction, spin=0, shortestpath=True):
     q1 *= math.sin(fraction * angle) * isin
     q0 += q1
     return q0
+
+def ext_to_qua(ext_mtx, ret_t = True):
+    """
+    input:
+        ext_mtx(np.array): 4x4 extrinsic matrix
+    output:
+        qua (np.array): quanterion
+    """
+    R = Rmtx(ext_mtx[:3,:3].reshape(-1))
+    if ret_t:
+        return rotmat2qvec(R), ext_mtx[:,3]
+    else:
+        return rotmat2qvec(R)
+
+
+def qua_to_ext(qua, t):
+    """
+    input:
+        qua (np.array) : quanteriion
+        t (np.array): camera translation
+
+    return:
+
+        ext: extrinsic matrix (4x4)
+    """
+    R = qvec2rotmat(qua)
+    bot = np.zeros((1,3))
+    R = np.concatenate([R, bot], axis = 0)
+    return np.concatenate([R, t], axis = 1)
+
+
+def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
+    """
+    input:
+        eimg_ts (np.array): starting times at which the image is accumulated
+        triggers (np.array): col img starting time
+        ecam_trigs (np.array): extrinsics of event camera at trigger times
+
+    returns:
+        ecams_int (np.array): interpolated extrinsic positions
+    """
+
+    ecams_int = []
+    trig_idx = 1
+
+    trig_st = triggers[trig_idx - 1]
+    trig_end = triggers[trig_idx]
+
+    qua_st, tr_st = ext_to_qua(ecams_trig[trig_idx - 1])
+    qua_end, tr_end = ext_to_qua(ecams_trig[trig_idx])
+
+    for eimg_t in eimg_ts:
+        if eimg_t > trig_end:
+            trig_idx += 1
+            if trig_idx >= len(triggers):
+                break
+
+            qua_st, t_st = ext_to_qua(ecams_trig[trig_idx - 1])
+            qua_end, t_end = ext_to_qua(ecams_trig[trig_idx])
+
+            trig_st = triggers[trig_idx - 1]
+            trig_end = triggers[trig_idx]
+            trig_diff = trig_end - trig_st
+        
+        frac = (eimg_t - trig_st)/trig_diff
+        interp_qua = quaternion_slerp(qua_st,qua_end,frac)
+        ecams_int.append(qua_to_ext(interp_qua, (1-frac)*t_st + frac*t_end))
+    
+    return np.stack(ecams_int)
