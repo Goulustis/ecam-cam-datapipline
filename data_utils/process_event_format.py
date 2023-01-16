@@ -16,6 +16,11 @@ you can use 2 compression backends:
     - zlib (fast read, slow write)
     - zstandard (fast read, fast write, but you have to install it)
 """
+import sys
+sys.path.append(".")
+
+from format_data.utils import read_triggers
+
 from tqdm import tqdm
 import os.path as osp
 import os
@@ -161,7 +166,7 @@ def test_read():
     return next(runner)
 
 
-def process_events_h5(inp_file, out_file, save_np = True):
+def process_events_h5(inp_file, out_file, st_t=-1, save_np = True):
     reader = H5EventsReader(inp_file)
     runner = iter(reader)
 
@@ -177,6 +182,9 @@ def process_events_h5(inp_file, out_file, save_np = True):
     
     concat = lambda x : np.concatenate(x)
     x, y, t, p = concat(x), concat(y), concat(t), concat(p)
+    
+    cond = t >= st_t
+    x,y,t,p, np_events = [e[cond] for e in [x,y,t,p, np_events]]
     np_events = concat(np_events)
     
     with h5py.File(out_file, "w") as hf:
@@ -192,11 +200,13 @@ def process_events_h5(inp_file, out_file, save_np = True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Turn a prophesee 3.0 h5 file to 2.0 h5 file for e2calib')
-    # parser.add_argument("-i", "--input", help="path to event h5 file", required=True)
-    # parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
     parser.add_argument("-i", "--input", help="path to event h5 file", default="data/checker/events.h5")
     parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
+    parser.add_argument("-t", "--triggers", help="path to trigger file", default="data/checker/triggers.txt")
     args = parser.parse_args()
+
+    triggers = read_triggers(args.triggers)
+    st_t = triggers[0]
     
     if args.output is None:
         dir_name = osp.dirname(args.input)
