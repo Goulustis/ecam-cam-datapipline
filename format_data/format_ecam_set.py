@@ -5,7 +5,10 @@ import os.path as osp
 from nerfies.camera import Camera
 import argparse
 import shutil
-from utils import read_triggers
+
+from utils import read_triggers, read_ecam_intrinsics, read_events
+from eimg_maker import create_event_imgs
+from slerp_qua import create_interpolated_ecams
 
 # TODO: step throught is function for sanity check
 def make_camera(ext_mtx, intr_mtx, dist):
@@ -38,47 +41,43 @@ def make_camera(ext_mtx, intr_mtx, dist):
 
     return new_camera
 
-def read_ecam_intrinsics(path, cam_i = 2):
-    """
-    input:
-        path (str): path to json
-    output:
-        M (np.array): 3x3 intrinsic matrix
-        dist (list like): distortion (k1, k2, p1, p2, k3)
-    """
-    with open(path, 'r') as f:
-        data = json.load(f)
-    
-    return np.array(data[f"M{cam_i}"]), data[f"dist{cam_i}"][0]
-
 
 def create_camera_extrinsics(extrinsic_dir, ecams, triggers, intr_mtx, dist):
+    """
+    create the extrinsics and save it
+    """
     os.makedirs(extrinsic_dir, exist_ok=True)
     for i, (ecam,t) in enumerate(zip(ecams, triggers)):
         camera = make_camera(ecam, intr_mtx, dist)
         targ_cam_path = osp.join(extrinsic_dir, str(i).zfill(6) + ".json")
-        print("saveing to", targ_cam_path)
+        print("saving to", targ_cam_path)
         cam_json = camera.to_json()
         cam_json["t"] = t
         with open(targ_cam_path, "w") as f:
             json.dump(cam_json, f, indent=2)
 
 
-def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, ts_path):
+
+def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     os.makedirs(targ_dir, exist_ok=True)
     event_path = osp.join(data_path, "processed_event.h5") 
     ecam_path = osp.join(data_path, "e_cams.npy")  ## extrinsics
 
     # read files
-    ecams = np.load(ecam_path)
+    ecams_trig = np.load(ecam_path) # extrinsics at trigger times
     intr_mtx, dist = read_ecam_intrinsics(ecam_intrinsics_path)
-    ecam_times = read_triggers(ts_path)
+    triggers = read_triggers(trig_path)
 
-    ## create camera extrinsics
+    ## create event images
+    events = read_events(event_path)
+    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers)
+    
+    ecams = create_interpolated_ecams(eimg_ts, triggers, ecams_trig)
+
+    ## create and camera extrinsics
     extrinsic_dir = osp.join(targ_dir, "camera")
-    format_ecam_data(extrinsic_dir, ecams, ecam_times, intr_mtx, dist)
+    create_camera_extrinsics(extrinsic_dir, ecams, eimg_ts, intr_mtx, dist)
 
-    # create event images according to extrinsic time stamp
 
     # create metadata.json
     
