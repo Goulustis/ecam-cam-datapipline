@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-def ev_to_img(evs, eps):
+def ev_to_img(evs, e_thresh=0.15):
     """
     input:
         evs (np.array [type (t, x, y, p)]): events such that t in [t_st, t_st + time_delta]
@@ -25,33 +25,35 @@ def ev_to_img(evs, eps):
 
     e_img = e_img.reshape(h,w)
 
-    img = np.zeros((h,w,3), dtype=np.uint8)
-    img[e_img>0, 1] = 255
-    img[e_img<0, 2] = 255
-    img[e_img == 0] = 255
 
-    return img
+    return e_img
 
-def create_event_imgs(events, triggers, time_delta=50):
+def create_event_imgs(events, triggers, time_delta=50, create_imgs = True):
     """
     input:
         events (np.array [type (t, x, y, p)]): events
         time_delta (int): time in ms, the time gap to create event images
         st_t (int): starting time to accumulate the event images
         triggers (np.array [int]): list of trigger time
+        create_imgs (bool): actually create the event images, might use this function just to
+                            get timestamps and ids
 
     return:
-        event_imgs (np.array): list of images with time delta of 50
-        img_times (np.array): list of time at which the event image is accumulated to
-        img_ids (np.array): list of embedding ids for each image
+        eimgs (np.array): list of images with time delta of 50
+        eimgs_ts (np.array): list of time at which the event image is accumulated to
+        eimgs_ids (np.array): list of embedding ids for each image
         trigger_ids (np.array): list of embedding ids of each trigger time
     """
 
     # number of eimg per trigger gap
     n_eimg_per_gap = (triggers[1] - triggers[0]) // time_delta
-    eimgs = []
-    eimgs_ids = []
-    trig_ids = []
+    eimgs = []       # the event images
+    eimgs_ts = []
+    eimgs_ids = []   # embedding ids for each img
+    trig_ids = []    # id at each trigger
+
+    if events is not None:
+        ts = events["t"]
 
     id_cnt = 0
     for trig_t in triggers:
@@ -60,9 +62,26 @@ def create_event_imgs(events, triggers, time_delta=50):
         trig_ids.append(id_cnt)
 
         for _ in range(n_eimg_per_gap):
-            cond = 3
-    
-    pass
+            if create_imgs:
+                cond = (st_t <= ts) & (ts <= end_t)
+                img_events = events[cond]
+                eimg = ev_to_img(img_events)
+                eimgs.append(eimg)
+
+
+            eimgs_ids.append(id_cnt)
+            eimgs_ts.append(st_t)
+
+            # update
+            st_t = end_t
+            end_t = end_t + time_delta
+            id_cnt += 1
+
+    if create_imgs:
+        return np.stack(eimgs), np.array(eimgs_ts), np.array(eimgs_ids), np.array(trig_ids)
+    else:
+        return None, np.array(eimgs_ts), np.array(eimgs_ids), np.array(trig_ids)
+
 
 
 
