@@ -116,6 +116,9 @@ def qua_to_ext(qua, t):
 
         ext: extrinsic matrix (4x4)
     """
+    if len(t.shape) == 1:
+        t = t[...,None]
+        
     R = qvec2rotmat(qua)
     bot = np.zeros((1,3))
     R = np.concatenate([R, bot], axis = 0)
@@ -138,6 +141,7 @@ def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
 
     trig_st = triggers[trig_idx - 1]
     trig_end = triggers[trig_idx]
+    trig_diff = trig_end - trig_st
 
     qua_st, tr_st = ext_to_qua(ecams_trig[trig_idx - 1])
     qua_end, tr_end = ext_to_qua(ecams_trig[trig_idx])
@@ -148,8 +152,8 @@ def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
             if trig_idx >= len(triggers):
                 break
 
-            qua_st, t_st = ext_to_qua(ecams_trig[trig_idx - 1])
-            qua_end, t_end = ext_to_qua(ecams_trig[trig_idx])
+            qua_st, tr_st = ext_to_qua(ecams_trig[trig_idx - 1])
+            qua_end, tr_end = ext_to_qua(ecams_trig[trig_idx])
 
             trig_st = triggers[trig_idx - 1]
             trig_end = triggers[trig_idx]
@@ -157,6 +161,6 @@ def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
         
         frac = (eimg_t - trig_st)/trig_diff
         interp_qua = quaternion_slerp(qua_st,qua_end,frac)
-        ecams_int.append(qua_to_ext(interp_qua, (1-frac)*t_st + frac*t_end))
+        ecams_int.append(qua_to_ext(interp_qua, (1-frac)*tr_st + frac*tr_end))
     
     return np.stack(ecams_int)
