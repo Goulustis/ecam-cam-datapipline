@@ -44,4 +44,6 @@ idx_2
 ```
 https://github.com/uzh-rpg/e2calib
 https://github.com/bvnayak/stereo_calibration
+https://github.com/google/nerfies
+https://github.com/apple/ml-neuman/
 ```
