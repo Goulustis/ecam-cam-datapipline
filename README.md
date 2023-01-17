@@ -15,7 +15,7 @@ The scripts should be runned in the following sequence:
 
 
 ## directory format
-Assume scene structure in this format
+Assume scene structure in this format (both general scene and checker board scene for calibration)
 ```
 scene
 └───scene_recons (from colmap reconstruction)
@@ -30,7 +30,7 @@ scene
 |   |   |   |   cameras.bin
 |   |   scale_pnts.txt               (points selected for finding scene scale)
 |   |   pnt_dist.txt                 (actual length of selected points in real world)
-│   events.h5                         (the event data of the scene; in metavision v3.0)
+│   events.h5                        (the event data of the scene; in metavision v3.0)
 |   triggers.txt                     (triggers received; on events only; 1 events only)
 ```
 
@@ -38,6 +38,11 @@ Inside scale points will have 2 idxs:
 ```
 idx_1
 idx_2 
+```
+
+Inside pnt_dist points will the real distance of between the two points in idx_1, idx_2:
+```
+4.32
 ```
 
 # Code Acknowledgement
