@@ -87,11 +87,10 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     triggers = read_triggers(trig_path)
 
     ## create event images
-    # events = read_events(event_path, save_np=True, targ_dir=targ_dir)
-    events = None
+    events = read_events(event_path, save_np=True, targ_dir=targ_dir)
     eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=False)
-    # np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
-    # del eimgs
+    np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
+    del eimgs
     
     ecams = create_interpolated_ecams(eimg_ts, triggers, ecams_trig)
 
