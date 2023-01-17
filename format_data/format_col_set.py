@@ -106,7 +106,7 @@ class SceneManager:
   """A thin wrapper around pycolmap."""
 
   @classmethod
-  def from_pycolmap(cls, colmap_path, image_path, min_track_length=10):
+  def from_pycolmap(cls, colmap_path, image_path, min_track_length=10, f_ext = "jpg"):
     """Create a scene manager using pycolmap."""
     manager = pycolmap.SceneManager(str(colmap_path))
     manager.load_cameras()
@@ -114,12 +114,13 @@ class SceneManager:
     manager.load_points3D()
     manager.filter_points3D(min_track_len=min_track_length)
     sfm_cameras = _pycolmap_to_sfm_cameras(manager)
-    return cls(sfm_cameras, manager.get_filtered_points3D(), image_path)
+    return cls(sfm_cameras, manager.get_filtered_points3D(), image_path,f_ext)
 
-  def __init__(self, cameras, points, image_path):
+  def __init__(self, cameras, points, image_path, f_ext="jpg"):
     self.image_path = Path(image_path)
     self.camera_dict = cameras
     self.points = points
+    self.f_ext = f_ext
 
     logging.info('Created scene manager with %d cameras', len(self.camera_dict))
 
@@ -141,7 +142,8 @@ class SceneManager:
 
   def load_image(self, image_id):
     """Loads the image with the specified image_id."""
-    path = self.image_path / f'{image_id}.png'
+    # path = self.image_path / f'{image_id}.png'
+    path = self.image_path / f'{image_id}.{self.f_ext}'
     with path.open('rb') as f:
       return imageio.imread(f)
 
@@ -223,7 +225,8 @@ import plotly.graph_objs as go
 scene_manager = SceneManager.from_pycolmap(
     colmap_dir, 
     img_dir, 
-    min_track_length=5)
+    min_track_length=5,
+    f_ext=os.listdir(args.img_dir)[0].split(".")[-1])
 
 
 # create timestamp dic
