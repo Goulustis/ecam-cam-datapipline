@@ -4,14 +4,14 @@ this repository will turn images and events into a dataset scene
 
 
 ## installation
-1) install [e2calib](https://github.com/uzh-rpg/e2calib) in the third party directory
-2) For visualization, install [this](https://github.com/Goulustis/exviz)
-3) and open3d
+1) install packages in requirement.txt
+2) install [e2calib](https://github.com/uzh-rpg/e2calib) in the third party directory 
+3) For visualization, install [this](https://github.com/Goulustis/exviz) and open3d
 
 ## Instructions
 The scripts should be runned in the following sequence:
 1) find_relative_cam.sh      (finds relative camera position; checker board scene required)
-2) create_ecam_extrinsics.sh (finds event camera extrinsics based on relative camera position)
+2) create_ecam_extrinsics.sh (finds colmap scene scale & event camera extrinsics based on relative camera position)
 3) format_dataset.sh         (creates one scene)
 
 ## directory format
