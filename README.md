@@ -10,9 +10,9 @@ this repository will turn images and events into a dataset scene
 
 ## Instructions
 The scripts should be runned in the following sequence:
-1) find_relative_cam.sh  (finds relative camera position)
-2) create_ecam_extrinsics (finds event camera extrinsics based on relative camera position)
-
+1) find_relative_cam.sh      (finds relative camera position; checker board scene required)
+2) create_ecam_extrinsics.sh (finds event camera extrinsics based on relative camera position)
+3) format_dataset.sh         (creates one scene)
 
 ## directory format
 Assume scene structure in this format (both general scene and checker board scene for calibration)
@@ -32,6 +32,8 @@ scene
 |   |   pnt_dist.txt                 (actual length of selected points in real world)
 │   events.h5                        (the event data of the scene; in metavision v3.0)
 |   triggers.txt                     (triggers received; on events only; 1 events only)
+|   rel_cam.json                     (color to event camera R,t; obtained via find_relative_cam.sh)
+|   e_cams.npy                       (corresponding event camera extrinsics at trigger times; obtained via create_ecam_extrinsics.sh)
 ```
 
 Inside scale points will have 2 idxs:
