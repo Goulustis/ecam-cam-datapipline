@@ -276,6 +276,19 @@ def variance_of_laplacian(image: np.ndarray) -> np.ndarray:
   return cv2.Laplacian(gray, cv2.CV_64F).var()
 
 
+# keep one extra, events might end between the frames
+# add some definition for the last image  <----------------------------- watch this out.... bad feeling for this.....
+print("filter images out of trigger range")
+remove_ids = sorted(list(set(scene_manager.image_ids) - set(img_trig_dic.keys())))
+img_trig_dic[remove_ids[0]] = triggers.max() + np.diff(triggers)[0]
+img_trig_id_dic[remove_ids[0]] = int(trig_ids.max() + 1)
+
+remove_ids = remove_ids[1:]  
+print("removing out of range image ids", remove_ids)
+num_removed = scene_manager.filter_images(remove_ids)
+print(f"removed {num_removed} out of range images")
+
+
 # blur_filter_perc = 95.0 # @param {type: 'number'}
 blur_filter_perc = args.blurry_per # @param {type: 'number'}
 if blur_filter_perc > 0.0:
@@ -303,22 +316,17 @@ if blur_filter_perc > 0.0:
 else:
   print("not filtering blurry images")
 
-print("filter images out of trigger range")
-remove_ids = sorted(list(set(scene_manager.image_ids) - set(img_trig_dic.keys())))
 
+print("removing partially black images")
+print('loading images')
+images = np.stack(list(map(scene_manager.load_image, scene_manager.image_ids)))
+n_pix = np.prod(images[0].shape)
+filter_cond = (images == 0).sum(axis = tuple(i for i in range(1, len(images.shape)))) > n_pix * 0.5
+black_idxs = np.array(scene_manager.image_ids)[filter_cond]
+print("removing black:", black_idxs)
+num_removed = scene_manager.filter_images(black_idxs)
+print(f"removed {num_removed} black images")
 
-#TODO: remove the black images
-
-# keep one extra, events might end between the frames
-# add some definition for the last image  <----------------------------- watch this out.... bad feeling for this.....
-img_trig_dic[remove_ids[0]] = np.diff(triggers)[0]
-img_trig_id_dic[remove_ids[0]] = int(trig_ids.max() + 1)
-
-
-remove_ids = remove_ids[1:]  
-print("removing out of range image ids", remove_ids)
-num_removed = scene_manager.filter_images(remove_ids)
-print(f"removed {num_removed} out of range images")
 
 """### Face Processing.
 
