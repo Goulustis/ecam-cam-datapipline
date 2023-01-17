@@ -11,14 +11,14 @@ echo sourcing
 source ~/.bashrc        # get conda working here
 echo sourcing done
 
-# path to standard scene of checker board 9x6
+# checker board 9x6 scene ONLY
 ########################## modify inputs here ##############################
 WORKING_DIR=$(pwd)
 IMAGE_PATH=data/checker/checker_recon/images
 EVENT_H5=data/checker/events.h5 
 TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
 SQUARE_SIZE=4.23  # size of checkerboard square in desired unit (mm, cm, m)
-########################## modify inputs here ##############################
+########################## modify inputs above^^^^^^^^^ ##############################
 IMAGE_PATH=$(realpath $IMAGE_PATH)
 EVENT_H5=$(realpath $EVENT_H5)
 TRIGGER_PATH=$(realpath $TRIGGER_PATH)
