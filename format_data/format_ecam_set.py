@@ -79,7 +79,7 @@ def write_metadata(eimgs_ids, targ_dir):
 def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     os.makedirs(targ_dir, exist_ok=True)
     event_path = osp.join(data_path, "processed_events.h5") 
-    ecam_path = osp.join(data_path, "e_cams.npy")  ## extrinsics
+    ecam_path = osp.join(data_path, "e_cams.npy")  ## trigger extrinsics
 
     # read files
     ecams_trig = np.load(ecam_path) # extrinsics at trigger times
@@ -101,9 +101,6 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     # create metadata.json
     write_metadata(eimgs_ids, targ_dir)
 
-    # # save the event images
-    # np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
-
     # save the trig_ids; make the color camera ids the same
     np.save(osp.join(targ_dir, "trig_ids.npy"), trig_ids)
 
@@ -119,7 +116,6 @@ if __name__ == "__main__":
     parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/checker/rel_cam.json")
     parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_checker/ecam_set")
     parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/checker/triggers.txt")
-    # parser.add_argument("--scale",type=int, help="factor to scale the extrinsics by, since color camera could use lower res", default=2) # will not happen, because no change for event camera extrinsics
     args = parser.parse_args()
 
     format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path)
