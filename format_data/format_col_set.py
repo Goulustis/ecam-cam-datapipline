@@ -194,10 +194,6 @@ class SceneManager:
 
 
 parser = argparse.ArgumentParser(description="process colmap into nerfies dataset")
-# parser.add_argument("--img_dir", help="path to images", default=None)
-# parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]")
-# parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=1)
-# parser.add_argument("--target_dir", help="place to save the formatted dataset")
 parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
 parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
 parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
