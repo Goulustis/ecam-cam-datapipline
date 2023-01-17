@@ -115,11 +115,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="make the event camera extrinsics dataset")
 
     # data_path is for getting the event h5 and the event camera extrinsics
-    parser.add_argument("--data_path", help="the path to the dataset format described in readme", default="data/checker")
-    parser.add_argument("--ecam_int_path", help="path to rel_cam.json", default="data/checker/rel_cam.json")
+    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="data/checker")
+    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/checker/rel_cam.json")
     parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_checker/ecam_set")
     parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/checker/triggers.txt")
     # parser.add_argument("--scale",type=int, help="factor to scale the extrinsics by, since color camera could use lower res", default=2) # will not happen, because no change for event camera extrinsics
     args = parser.parse_args()
 
-    format_ecam_data(args.data_path, args.ecam_int_path, args.targ_dir, args.trigger_path)
+    format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path)
