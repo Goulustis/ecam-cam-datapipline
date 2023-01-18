@@ -1,14 +1,14 @@
 # NOTE: run find_relative_cam.sh to find rel_cam.json
 # This script will find the event camera extrinsics 
 
-REL_CAM_PATH=data/checker/rel_cam.json
-SCENE_PATH=data/checker
+REL_CAM_PATH=data/checker/rel_cam.json                         # [REQUIRED] relative camera positions
+SCENE_PATH=data/checker                                        # [REQUIRED] path to your scene (eg. some_path/scene)
 SCENE=$(basename $SCENE_PATH)
 PNT_3D_PATH=$SCENE_PATH/${SCENE}_recon/sparse/0/points3D.bin   # output of colmap
 IMG_PATH=$SCENE_PATH/${SCENE}_recon/sparse/0/images.bin        # output of colmap
-SCALE_PNT_PATH=$SCENE_PATH/${SCENE}_recon/scale_pnts.txt   # path containing id of 3d points
-REAL_SCALE_PATH=$SCENE_PATH/${SCENE}_recon/pnt_dist.txt  # path containing actual distance of 3d points in (cm, mm, ...) is 
-                                                   #      consistent with unit of square for finding relative camera params
+SCALE_PNT_PATH=$SCENE_PATH/${SCENE}_recon/scale_pnts.txt       # path containing id of 3d points
+REAL_SCALE_PATH=$SCENE_PATH/${SCENE}_recon/pnt_dist.txt        # path containing actual distance of 3d points in (cm, mm, ...) is 
+                                                               #      consistent with unit of square for finding relative camera params
 
 ## find real scale of colmap
 ## save scale under $SCENE_PATH/$SCENE/colmap_scale.txt
