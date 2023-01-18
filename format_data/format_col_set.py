@@ -279,10 +279,9 @@ def variance_of_laplacian(image: np.ndarray) -> np.ndarray:
 # add some definition for the last image  <----------------------------- watch this out.... bad feeling for this.....
 print("filter images out of trigger range")
 remove_ids = sorted(list(set(scene_manager.image_ids) - set(img_trig_dic.keys())))
-img_trig_dic[remove_ids[0]] = triggers.max() + np.diff(triggers)[0]
-img_trig_id_dic[remove_ids[0]] = int(trig_ids.max() + 1)
-
-remove_ids = remove_ids[1:]  
+# img_trig_dic[remove_ids[0]] = triggers.max() + np.diff(triggers)[0]
+# img_trig_id_dic[remove_ids[0]] = int(trig_ids.max() + 1)
+# remove_ids = remove_ids[1:]  
 print("removing out of range image ids", remove_ids)
 num_removed = scene_manager.filter_images(remove_ids)
 print(f"removed {num_removed} out of range images")
