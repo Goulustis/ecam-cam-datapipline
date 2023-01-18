@@ -7,6 +7,7 @@ import numpy as np
 import math
 from colmap_find_scale.read_write_model import qvec2rotmat, rotmat2qvec
 from collections import namedtuple
+from tqdm import tqdm
 
 _EPS = np.finfo(float).eps * 4.0
 Rmtx = namedtuple("Rmtx", ["flat"])
@@ -146,7 +147,7 @@ def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
     qua_st, tr_st = ext_to_qua(ecams_trig[trig_idx - 1])
     qua_end, tr_end = ext_to_qua(ecams_trig[trig_idx])
 
-    for eimg_t in eimg_ts:
+    for eimg_t in tqdm(eimg_ts, desc="creating interpolated cameras"):
         if eimg_t > trig_end:
             trig_idx += 1
             if trig_idx >= len(triggers):
