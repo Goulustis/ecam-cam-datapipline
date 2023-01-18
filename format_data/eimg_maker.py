@@ -77,7 +77,7 @@ def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
             trig_ids.append(id_cnt)
 
             for _ in range(n_eimg_per_gap):
-                if create_imgs:
+                if (events is not None) and create_imgs:
                     cond = (st_t <= curr_t) & (curr_t <= end_t)
                     # img_events = events[cond]
                     # eimg = ev_to_img(img_events)
@@ -95,7 +95,7 @@ def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
 
                 pbar.update(1)
 
-    if create_imgs:
+    if (events is not None) and create_imgs:
         return np.stack(eimgs), np.array(eimgs_ts, dtype=np.int32), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
     else:
         return None, np.array(eimgs_ts, dtype=np.int32), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
