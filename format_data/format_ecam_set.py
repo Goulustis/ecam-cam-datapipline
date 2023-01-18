@@ -75,6 +75,21 @@ def write_metadata(eimgs_ids, targ_dir):
         json.dump(metadata, f, indent=2)
 
 
+def write_train_valid_split(eimgs_ids, targ_dir):
+    eimgs_ids = [int(e) for e in eimgs_ids]
+    save_path = osp.join(targ_dir, "dataset.json")
+
+    train_ids = sorted(eimgs_ids)
+    dataset_json = {
+        "count":len(eimgs_ids),
+        "num_exemplars":len(train_ids),
+        "ids": eimgs_ids,
+        "val_ids":[]
+    }
+
+    with open(save_path, "w") as f:
+        json.dump(dataset_json, f, indent=2)
+
 
 def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     os.makedirs(targ_dir, exist_ok=True)
@@ -106,6 +121,9 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
 
     # copy event to places
     shutil.copyfile(event_path, osp.join(targ_dir, osp.basename(event_path)))
+
+    # create train valid split
+    write_train_valid_split(eimgs_ids, targ_dir)
 
 
 if __name__ == "__main__":
