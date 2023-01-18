@@ -90,6 +90,12 @@ def write_train_valid_split(eimgs_ids, targ_dir):
     with open(save_path, "w") as f:
         json.dump(dataset_json, f, indent=2)
 
+def save_eimgs(eimgs, targ_dir):
+    eimgs_dir = osp.join(targ_dir, "eimgs")
+    os.makedirs(eimgs_dir, exist_ok=True)
+    np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
+    del eimgs
+    
 
 def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     os.makedirs(targ_dir, exist_ok=True)
@@ -104,8 +110,8 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     ## create event images
     events = read_events(event_path, save_np=True, targ_dir=targ_dir)
     eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=False)
-    np.save(osp.join(targ_dir, "eimgs.npy"), eimgs)
-    del eimgs
+
+    save_eimgs(eimgs, targ_dir)
     
     ecams = create_interpolated_ecams(eimg_ts, triggers, ecams_trig)
 
