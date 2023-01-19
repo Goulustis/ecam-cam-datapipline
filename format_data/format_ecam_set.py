@@ -69,7 +69,7 @@ def write_metadata(eimgs_ids, eimgs_ts, targ_dir):
 
     for i, (id, t) in enumerate(zip(eimgs_ids, eimgs_ts)):
         metadata[str(i).zfill(6)] = {"warp_id":int(id),
-                                     "appearence_id":int(id),
+                                     "appearance_id":int(id),
                                      "camera_id":0,
                                      "t":int(t)}
     
