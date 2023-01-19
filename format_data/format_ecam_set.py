@@ -78,7 +78,7 @@ def write_metadata(eimgs_ids, eimgs_ts, targ_dir):
 
 
 def write_train_valid_split(eimgs_ids, targ_dir):
-    eimgs_ids = [int(e) for e in eimgs_ids]
+    eimgs_ids = [str(int(e)).zfill(6) for e in eimgs_ids]
     save_path = osp.join(targ_dir, "dataset.json")
 
     train_ids = sorted(eimgs_ids)
