@@ -9,12 +9,12 @@ RELCAM_PATH=$SCENE_PATH/rel_cam.json     # path to relative camera
 TRIGGER_PATH=$SCENE_PATH/triggers.txt     # path to triggers
 ECAM_TARG_DIR=$TARG_DIR/ecam_set         # path to save processed event camera data
 
-# echo formatting event camera dataset
+echo formatting event camera dataset
 
-# python format_data/format_ecam_set.py --scene_path $SCENE_PATH \
-#                                       --relcam_path $RELCAM_PATH \
-#                                       --targ_dir $ECAM_TARG_DIR \
-#                                       --trigger_path $TRIGGER_PATH
+python format_data/format_ecam_set.py --scene_path $SCENE_PATH \
+                                      --relcam_path $RELCAM_PATH \
+                                      --targ_dir $ECAM_TARG_DIR \
+                                      --trigger_path $TRIGGER_PATH
 
 
 
