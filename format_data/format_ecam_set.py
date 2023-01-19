@@ -114,6 +114,7 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
 
     ## create event images
     events = read_events(event_path, save_np=True, targ_dir=targ_dir)
+    # events = None
     eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=True)
 
     save_eimgs(eimgs, targ_dir)
