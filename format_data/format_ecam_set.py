@@ -71,7 +71,7 @@ def write_metadata(eimgs_ids, eimgs_ts, targ_dir):
         metadata[str(i).zfill(6)] = {"warp_id":int(id),
                                      "appearence_id":int(id),
                                      "camera_id":0,
-                                     "t":t}
+                                     "t":int(t)}
     
     with open(osp.join(targ_dir, "metadata.json"), "w") as f:
         json.dump(metadata, f, indent=2)
@@ -93,6 +93,9 @@ def write_train_valid_split(eimgs_ids, targ_dir):
         json.dump(dataset_json, f, indent=2)
 
 def save_eimgs(eimgs, targ_dir):
+    if eimgs is None:
+        return 
+
     eimgs_dir = osp.join(targ_dir, "eimgs")
     os.makedirs(eimgs_dir, exist_ok=True)
     np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
@@ -111,7 +114,7 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
 
     ## create event images
     events = read_events(event_path, save_np=True, targ_dir=targ_dir)
-    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=False)
+    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=True)
 
     save_eimgs(eimgs, targ_dir)
     
