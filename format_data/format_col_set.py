@@ -770,7 +770,7 @@ print(f'Saved dataset information to {dataset_json_path}')
 trig_delta = np.diff(triggers).min()
 trig_st = img_trig_dic[scene_manager.image_ids[0]]
 
-calc_id = lambda img_id : int(np.round((img_trig_dic[img_id] - trig_st)/trig_delta))
+# calc_id = lambda img_id : int(np.round((img_trig_dic[img_id] - trig_st)/trig_delta))
 
 import bisect
 
@@ -780,6 +780,7 @@ for i, image_id in enumerate(train_ids):
       'warp_id': img_trig_id_dic[image_id],
       'appearance_id': img_trig_id_dic[image_id],
       'camera_id': 0,
+      't':img_trig_dic[image_id]
   }
 
 for i, image_id in enumerate(val_ids):
@@ -788,6 +789,7 @@ for i, image_id in enumerate(val_ids):
       'warp_id': img_trig_id_dic[image_id],
       'appearance_id': img_trig_id_dic[image_id],
       'camera_id': 0,
+      't':img_trig_dic[image_id]
   }
 
 metadata_json_path = root_dir / 'metadata.json'

@@ -57,19 +57,21 @@ def create_camera_extrinsics(extrinsic_dir, ecams, triggers, intr_mtx, dist):
             json.dump(cam_json, f, indent=2)
 
 
-def write_metadata(eimgs_ids, targ_dir):
+def write_metadata(eimgs_ids, eimgs_ts, targ_dir):
     """
     saves the eimg ids as metatdata 
     input:
         eimgs_ids (np.array [int]) : event image ids
+        eimgs_ts (np.array [int]) : time stamp of each event image
         targ_dir (str): directory to save to
     """
     metadata = {}
 
-    for i, id in enumerate(eimgs_ids):
+    for i, (id, t) in enumerate(zip(eimgs_ids, eimgs_ts)):
         metadata[str(i).zfill(6)] = {"warp_id":int(id),
                                      "appearence_id":int(id),
-                                     "camera_id":0}
+                                     "camera_id":0,
+                                     "t":t}
     
     with open(osp.join(targ_dir, "metadata.json"), "w") as f:
         json.dump(metadata, f, indent=2)
@@ -120,7 +122,7 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     create_camera_extrinsics(extrinsic_dir, ecams, eimg_ts, intr_mtx, dist)
 
     # create metadata.json
-    write_metadata(eimgs_ids, targ_dir)
+    write_metadata(eimgs_ids, eimg_ts, targ_dir)
 
     # save the trig_ids; make the color camera ids the same
     np.save(osp.join(targ_dir, "trig_ids.npy"), trig_ids)
