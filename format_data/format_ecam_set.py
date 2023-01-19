@@ -85,7 +85,7 @@ def write_train_valid_split(eimgs_ids, targ_dir):
     dataset_json = {
         "count":len(eimgs_ids),
         "num_exemplars":len(train_ids),
-        "ids": eimgs_ids,
+        "train_ids": eimgs_ids,
         "val_ids":[]
     }
 
