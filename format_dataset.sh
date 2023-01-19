@@ -38,6 +38,11 @@ python format_data/format_col_set.py --img_dir $IMG_PATH \
                                      --trigger_path $TRIGGER_PATH \
                                      --trig_ids_path $TRIG_IDS_PATH
 
+######## copy scene.json from colcam_set to ecam_set ######3
+cd $WORKING_DIR
+cp $COLCAM_TARG_DIR/scene.json $ECAM_TARG_DIR
+
+######## copy the images over ##############
 cp -r $IMG_PATH $COLCAM_TARG_DIR
 cd $COLCAM_TARG_DIR
 mv $(basename $IMG_PATH) 1x
