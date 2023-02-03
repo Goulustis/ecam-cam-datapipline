@@ -33,7 +33,7 @@ def main(eimg_path, scale):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--eimg_path", default="data/formatted_checker/ecam_set/eimgs/eimgs_1x.npy")
+    parser.add_argument("--eimg_path", default="data/formatted_checkers/ecam_set/eimgs/eimgs_1x.npy")
     parser.add_argument("--scale", type=float, default=2)
     args = parser.parse_args()
 
