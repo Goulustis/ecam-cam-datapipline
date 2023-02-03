@@ -31,7 +31,7 @@ def main(img_dir, scale = 2):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--img_dir", default="data/formatted_checker/colcam_set/rgb/1x")
+    parser.add_argument("--img_dir", default="data/formatted_checkers/colcam_set/rgb/1x")
     parser.add_argument("--scale", type=float, default=2)
     args = parser.parse_args()
 
