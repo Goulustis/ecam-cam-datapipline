@@ -178,14 +178,16 @@ def process_events_h5(inp_file, out_file, st_t=-1, save_np = True):
         t.append(event['t'])
         p.append(event['p'])
 
-        np_events.append(event)
-    
+        # np_events.append(event)
+
     concat = lambda x : np.concatenate(x)
     x, y, t, p = concat(x), concat(y), concat(t), concat(p)
-    
+    # np_events = concat(np_events)
+
     cond = t >= st_t
-    x,y,t,p, np_events = [e[cond] for e in [x,y,t,p, np_events]]
-    np_events = concat(np_events)
+    # x,y,t,p, np_events = [e[cond] for e in [x,y,t,p, np_events]]
+    x,y,t,p = [e[cond] for e in [x,y,t,p]]
+    # np_events = concat(np_events)
     
     with h5py.File(out_file, "w") as hf:
         hf.create_dataset('x', data=x, shape=x.shape)
@@ -193,16 +195,16 @@ def process_events_h5(inp_file, out_file, st_t=-1, save_np = True):
         hf.create_dataset('t', data=t, shape=t.shape)
         hf.create_dataset('p', data=p, shape=p.shape, dtype=np.uint8)
     
-    if save_np:
-        np_event_path = osp.join(osp.dirname(out_file), "events.npy")
-        print("saving", np_event_path)
-        np.save(np_event_path, np_events)
+    # if save_np:
+    #     np_event_path = osp.join(osp.dirname(out_file), "events.npy")
+    #     print("saving", np_event_path)
+    #     np.save(np_event_path, np_events)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Turn a prophesee 3.0 h5 file to 2.0 h5 file for e2calib')
-    parser.add_argument("-i", "--input", help="path to event h5 file", default="data/checker/events.h5")
+    parser.add_argument("-i", "--input", help="path to event h5 file", default="data/rgb_checker/events.h5")
     parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
-    parser.add_argument("-t", "--triggers", help="path to trigger file", default="data/checker/triggers.txt")
+    parser.add_argument("-t", "--triggers", help="path to trigger file", default="data/rgb_checker/triggers.txt")
     args = parser.parse_args()
 
     triggers = read_triggers(args.triggers)
