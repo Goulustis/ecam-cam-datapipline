@@ -71,7 +71,7 @@ def read_colmap_cam(cam_path, scale=2):
     cam = read_cameras_binary(cam_path)
     cam = cam[1]
 
-    fx, fy, cx, cy = cam.params[:4]*2
+    fx, fy, cx, cy = cam.params[:4]*scale
     int_mtx = np.array([[fx, 0, cx],
                         [0, fy, cy],
                         [0, 0, 1]]) 
