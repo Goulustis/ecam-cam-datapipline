@@ -10,7 +10,7 @@ from utils import read_triggers, read_ecam_intrinsics, read_events
 from eimg_maker import create_event_imgs
 from slerp_qua import create_interpolated_ecams
 
-# TODO: step throught is function for sanity check
+
 def make_camera(ext_mtx, intr_mtx, dist):
     """
     input:
@@ -102,7 +102,7 @@ def save_eimgs(eimgs, targ_dir):
     del eimgs
     
 
-def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
+def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, create_eimgs):
     os.makedirs(targ_dir, exist_ok=True)
     event_path = osp.join(data_path, "processed_events.h5") 
     ecam_path = osp.join(data_path, "e_cams.npy")  ## trigger extrinsics
@@ -115,7 +115,7 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path):
     ## create event images
     events = read_events(event_path, save_np=True, targ_dir=targ_dir)
     # events = None
-    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=True)
+    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=(create_eimgs=="True"))
 
     save_eimgs(eimgs, targ_dir)
     
@@ -146,6 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/checker/rel_cam.json")
     parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_checker/ecam_set")
     parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/checker/triggers.txt")
+    parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
     args = parser.parse_args()
 
-    format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path)
+    format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path, args.create_eimgs)

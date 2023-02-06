@@ -49,6 +49,10 @@ def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
         eimgs_ids (np.array): list of embedding ids for each image
         trigger_ids (np.array): list of embedding ids of each trigger time
     """
+    if create_imgs:
+        print("creating event images")
+    else:
+        print("not creating event images, interpolating cameras and creating ids only")
 
     # number of eimg per trigger gap
     n_eimg_per_gap = int((triggers[1] - triggers[0]) // time_delta)
@@ -57,7 +61,7 @@ def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
     eimgs_ids = []   # embedding ids for each img
     trig_ids = []    # id at each trigger
 
-    if events is not None:
+    if (events is not None) and create_imgs:
         t = events["t"]
         x, y, p = events["x"], events["y"], events["p"]
 
@@ -67,7 +71,7 @@ def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
         for trig_idx in range(1, len(triggers)):
             trig_st, trig_end = triggers[trig_idx - 1], triggers[trig_idx]
 
-            if events is not None:
+            if (events is not None) and create_imgs:
                 cond = (trig_st <= t) & (t <= trig_end)
                 curr_t, curr_x, curr_y, curr_p = [e[cond] for e in [t, x, y, p]]
             
