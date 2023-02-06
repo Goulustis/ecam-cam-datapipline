@@ -1,8 +1,8 @@
 # NOTE: run find_relative_cam.sh to find rel_cam.json
 # This script will find the event camera extrinsics 
 
-REL_CAM_PATH=data/checker/rel_cam.json                         # [REQUIRED] relative camera positions
-SCENE_PATH=data/checker                                        # [REQUIRED] path to your scene (eg. some_path/scene)
+REL_CAM_PATH=data/rgb_checker/rel_cam.json                         # [REQUIRED] relative camera positions
+SCENE_PATH=data/rgb_checker                                        # [REQUIRED] path to your scene (eg. some_path/scene)
 SCENE=$(basename $SCENE_PATH)
 PNT_3D_PATH=$SCENE_PATH/${SCENE}_recon/sparse/0/points3D.bin   # output of colmap
 IMG_PATH=$SCENE_PATH/${SCENE}_recon/sparse/0/images.bin        # output of colmap
@@ -21,8 +21,8 @@ python colmap_find_scale/find_scale.py -c $PNT_3D_PATH -p $SCALE_PNT_PATH -l $RE
 # default saved to $(dirname $IMG_PATH)/images_mtx.npy
 echo turning colmap quaterion to extrinsics
 COL_EXT_CAM_PATH=$(dirname $IMG_PATH)/images_mtx.npy
+
 # cd extrinsics_creator
-# python qua_to_ext.py -i $IMG_PATH -o $COL_EXT_CAM_PATH
 python extrinsics_creator/qua_to_ext.py -i $IMG_PATH -o $COL_EXT_CAM_PATH
 
 # CREATE THE RELATIVE CAMERA
