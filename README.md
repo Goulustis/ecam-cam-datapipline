@@ -18,7 +18,7 @@ The scripts should be runned in the following sequence:
 Assume scene structure in this format (both general scene and checker board scene for calibration)
 ```
 scene
-└───scene_recons (from colmap reconstruction)
+└───scene_recon (from colmap reconstruction)
 |   |   images
 |   |   |   00001.{JPG, PNG, ...}
 |   |   |   00002.{JPG, PNG, ...}
