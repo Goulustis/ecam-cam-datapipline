@@ -14,10 +14,10 @@ echo sourcing done
 # checker board 9x6 scene ONLY
 ########################## modify inputs here ##############################
 WORKING_DIR=$(pwd)
-IMAGE_PATH=data/checker/checker_recon/images
-EVENT_H5=data/checker/events.h5 
+IMAGE_PATH=data/rgb_checker/rgb_checker_recon/images  #[REQUIRED] path to image dir
+EVENT_H5=data/rgb_checker/events.h5                    #[REQUIRED] path to events
+SQUARE_SIZE=4.28                                       #[REQUIRED] size of checkerboard square in desired unit (mm, cm, m)
 TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
-SQUARE_SIZE=4.23  # size of checkerboard square in desired unit (mm, cm, m)
 ########################## modify inputs above^^^^^^^^^ ##############################
 IMAGE_PATH=$(realpath $IMAGE_PATH)
 EVENT_H5=$(realpath $EVENT_H5)
