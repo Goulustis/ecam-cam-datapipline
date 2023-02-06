@@ -1,5 +1,7 @@
 opencv-python==4.5.5.64
 mediapipe
+imageio
+plotly
 tensorflow_graphics
 git+https://github.com/google/nerfies.git@v2
 git+https://github.com/google/nerfies.git#egg=pycolmap&subdirectory=third_party/pycolmap
