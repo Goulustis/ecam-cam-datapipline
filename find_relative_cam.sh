@@ -14,9 +14,11 @@ echo sourcing done
 # checker board 9x6 scene ONLY
 ########################## modify inputs here ##############################
 WORKING_DIR=$(pwd)
-IMAGE_PATH=data/rgb_checker/rgb_checker_recon/images  #[REQUIRED] path to image dir
+IMAGE_PATH=data/rgb_checker/rgb_checker_recon/images   #[REQUIRED] path to image dir
 EVENT_H5=data/rgb_checker/events.h5                    #[REQUIRED] path to events
 SQUARE_SIZE=4.28                                       #[REQUIRED] size of checkerboard square in desired unit (mm, cm, m)
+COLCAM_PARAM=data/rgb_checker/rgb_checker_recon/sparse/0/cameras.bin   #[OPTIONAL] camera parameters from colmap; put down a non-existent path to not use
+ECAM_PARAM=data/rgb_checker/intrinsics.json            #[OPTIONAL] event camera parameters from prosphesees; put down non-existent path to not use
 TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
 ########################## modify inputs above^^^^^^^^^ ##############################
 IMAGE_PATH=$(realpath $IMAGE_PATH)
@@ -47,4 +49,5 @@ cd $WORKING_DIR
 REL_CALIB_PATH=$(dirname $EVENT_H5)/rel_calib.json
 EVENT_IMG_PATH=$(dirname $EVENT_H5)/events_imgs
 echo $EVENT_IMG_PATH
-python stereo_calib/camera_calibrate.py -f $IMAGE_PATH -t $EVENT_IMG_PATH -s $SQUARE_SIZE
+python stereo_calib/camera_calibrate.py -f $IMAGE_PATH -t $EVENT_IMG_PATH -s $SQUARE_SIZE \
+                                        -cp $COLCAM_PARAM -ep $ECAM_PARAM

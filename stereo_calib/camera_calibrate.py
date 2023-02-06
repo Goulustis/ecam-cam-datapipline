@@ -1,3 +1,7 @@
+import sys
+sys.path.append(".")
+
+from viz.proj_pts3d_eimgs import read_colmap_cam
 import numpy as np
 import cv2
 import glob
@@ -42,8 +46,22 @@ def save_correspond_img(from_img, to_img, idx):
     cv2.imwrite(save_path, save_img)
 
 
+def read_colmap_cam_param(cam_path):
+    out = read_colmap_cam(cam_path, scale=1)
+
+    return out["M1"], out["d1"]
+
+def read_prosphesee_ecam_param(cam_path):
+    
+    with open(cam_path,"r") as f:
+        data = json.load(f)
+    
+    return np.array(data["camera_matrix"]['data']).reshape(3,3), \
+           np.array(data['distortion_coefficients']['data'])
+
 class StereoCalibration(object):
-    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=150, st_n=150):
+    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=150, st_n=150,
+                 colcam_param_path="NULL", ecam_param_path="NULL"):
         """
         grid_size (float): size of grid
         n_use (int): number of frames to use from each camera for calibration
@@ -51,6 +69,8 @@ class StereoCalibration(object):
         """
         self.n_use = n_use
         self.st_n = st_n
+        self.colcam_param_path = colcam_param_path
+        self.ecam_param_path = ecam_param_path
         
         # termination criteria
         self.criteria = (cv2.TERM_CRITERIA_EPS +
@@ -88,7 +108,6 @@ class StereoCalibration(object):
         images_to, images_from = sub_sample(images_to), sub_sample(images_from)
         images_from, images_to = images_from[:35], images_to[:35]
 
-        # for i, fname in tqdm(enumerate(images_right), total=len(images_right)):
         for i in tqdm(range(min(len(images_from), len(images_to))), desc="loading images"):
             img_from = cv2.imread(images_from[i])
             img_to = cv2.imread(images_to[i])
@@ -115,14 +134,21 @@ class StereoCalibration(object):
 
         print("points available", len(self.objpoints))
         print("calibrating first camera")
-        # rt, self.M1, self.d1, self.r1, self.t1 = cv2.calibrateCamera(
-        #     self.objpoints, self.imgpoints_l, img_shape, None, None)
-        rt, self.M1, self.d1, self.r1, self.t1 = cv2.calibrateCamera(
-            self.objpoints, self.imgpoints_from, gray_from.shape[::-1], None, None)
+
+        if not osp.exists(self.colcam_param_path):
+            rt, self.M1, self.d1, self.r1, self.t1 = cv2.calibrateCamera(
+                self.objpoints, self.imgpoints_from, gray_from.shape[::-1], None, None)
+        else:
+            print("reading from colmap intrinsics")
+            self.M1, self.d1 = read_colmap_cam_param(self.colcam_param_path)
         
         print("calibrating second camera")
-        rt, self.M2, self.d2, self.r2, self.t2 = cv2.calibrateCamera(
-            self.objpoints, self.imgpoints_to, gray_to.shape[::-1], None, None)
+        if not osp.exists(self.ecam_param_path):
+            rt, self.M2, self.d2, self.r2, self.t2 = cv2.calibrateCamera(
+                self.objpoints, self.imgpoints_to, gray_to.shape[::-1], None, None)
+        else:
+            print("reading from ")
+            self.M2, self.d2 = read_prosphesee_ecam_param(self.ecam_param_path)
 
         self.camera_model = self.stereo_calibrate(img_shape)
 
@@ -160,9 +186,12 @@ class StereoCalibration(object):
 
         print('')
 
+        # camera_model = dict([('M1', M1), ('M2', M2), ('dist1', d1),
+        #                     ('dist2', d2), ('rvecs1', self.r1),
+        #                     ('rvecs2', self.r2), ('R', R), ('T', T),
+        #                     ('E', E), ('F', F)])
         camera_model = dict([('M1', M1), ('M2', M2), ('dist1', d1),
-                            ('dist2', d2), ('rvecs1', self.r1),
-                            ('rvecs2', self.r2), ('R', R), ('T', T),
+                            ('dist2', d2), ('R', R), ('T', T),
                             ('E', E), ('F', F)])
 
         cv2.destroyAllWindows()
@@ -176,17 +205,24 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--to", help="path to images of camera loc to map to", required=True) # R2
     parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=4.23)
     parser.add_argument("-o", "--out", help="location to save the relative camera output", default=None)
-    # parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", default="data/rgb_checker/rgb_checker_recons/images") # R1
+    parser.add_argument("-cp", "--colcam_param", help="path to colmap param binary file", default="None")
+    parser.add_argument("-ep", "--ecam_param", help="path to prosphesee event camera param path", default="None")
+    # parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", default="data/rgb_checker/rgb_checker_recon/images") # R1
     # parser.add_argument("-t", "--to", help="path to images of camera loc to map to", default="data/rgb_checker/events_imgs") # R2
     # parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=4.28)
     # parser.add_argument("-o", "--out", help="location to save the relative camera output", default=None)
+    # parser.add_argument("-cp", "--colcam_param", help="path to colmap param binary file", default="data/rgb_checker/rgb_checker_recon/sparse/0/cameras.bin")
+    # parser.add_argument("-ep", "--ecam_param", help="path to prosphesee event camera param path", default="data/rgb_checker/intrinsics.json")
     args = parser.parse_args()
 
     if args.out is None:
         out_path = osp.join(osp.dirname(args.to), "rel_cam.json")
     else:
         out_path = args.out
-    cal_data = StereoCalibration(args.from_imgs, args.to, args.size)
+    # cal_data = StereoCalibration(args.from_imgs, args.to, args.size, colcam_param_path=args.colcam_param, ecam_param_path=args.ecam_param)
+    cal_data = StereoCalibration(args.from_imgs, args.to, args.size, 
+                                 colcam_param_path="data/rgb_checker/rgb_checker_recon/sparse/0/cameras.bin", 
+                                 ecam_param_path="data/rgb_checker/intrinsics.json")
     cam_model = cal_data.camera_model
 
     to_save = {}
