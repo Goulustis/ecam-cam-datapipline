@@ -5,11 +5,42 @@ import argparse
 from tqdm import tqdm
 import json
 import os.path as osp
+import os
 
 """
 This code is taken from https://github.com/bvnayak/stereo_calibration
 and modified
 """
+
+# temporary dir to store intermediate results for sanity check
+TMP_DIR = "./tmp"
+
+
+def save_correspond_img(from_img, to_img, idx):
+    save_dir = osp.join(TMP_DIR, "stereo_calib_imgs")
+    os.makedirs(save_dir, exist_ok=True)
+
+    expand_dim_fn = lambda img : img if len(img.shape) == 3 else img[...,None]
+    from_img, to_img = expand_dim_fn(from_img), expand_dim_fn(to_img)
+    save_path = osp.join(save_dir, str(idx).zfill(6) + ".png")
+    new_h = max(from_img.shape[0], to_img.shape[0])
+
+    def pad_img(img):
+        h, w = img.shape[:2]
+        new_img = img
+        if (new_h - h) > 0:
+            n_add = new_h - h
+            n_top = n_add//2
+            n_bot = n_add - n_top
+            new_img = np.concatenate([np.zeros([n_top] + list(img.shape[1:]), dtype=to_img.dtype), new_img])
+            new_img = np.concatenate([new_img, np.zeros([n_bot] + list(img.shape[1:]), dtype=to_img.dtype)])
+        
+        return new_img
+    
+    from_img, to_img = pad_img(from_img), pad_img(to_img)
+    save_img = np.concatenate([from_img, to_img], axis=1)
+    cv2.imwrite(save_path, save_img)
+
 
 class StereoCalibration(object):
     def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=150, st_n=150):
@@ -55,6 +86,7 @@ class StereoCalibration(object):
         images_to = images_to[:n_frames]
 
         images_to, images_from = sub_sample(images_to), sub_sample(images_from)
+        images_from, images_to = images_from[:35], images_to[:35]
 
         # for i, fname in tqdm(enumerate(images_right), total=len(images_right)):
         for i in tqdm(range(min(len(images_from), len(images_to))), desc="loading images"):
@@ -70,6 +102,11 @@ class StereoCalibration(object):
 
             # If found, add object points, image points (after refining them)
             if ret_from and ret_to:
+                sub_pix_fn = lambda gray_img, corners : cv2.cornerSubPix(gray_img, corners, (11,11),(-1,-1), self.criteria)
+                _, _ = sub_pix_fn(gray_from, corners_from), sub_pix_fn(gray_to, corners_to)  # will directly change "corners" memory
+                draw_corner = lambda img, corner, ret : cv2.drawChessboardCorners(img, (9,6), corner, ret)
+                from_img, to_img  = draw_corner(img_from, corners_from, ret_from), draw_corner(img_to, corners_to, ret_to)
+                save_correspond_img(from_img, to_img, i)
                 self.objpoints.append(np.array(self.objp))
                 self.imgpoints_from.append(corners_from)
                 self.imgpoints_to.append(corners_to)
@@ -139,6 +176,10 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--to", help="path to images of camera loc to map to", required=True) # R2
     parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=4.23)
     parser.add_argument("-o", "--out", help="location to save the relative camera output", default=None)
+    # parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", default="data/rgb_checker/rgb_checker_recons/images") # R1
+    # parser.add_argument("-t", "--to", help="path to images of camera loc to map to", default="data/rgb_checker/events_imgs") # R2
+    # parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=4.28)
+    # parser.add_argument("-o", "--out", help="location to save the relative camera output", default=None)
     args = parser.parse_args()
 
     if args.out is None:
