@@ -27,6 +27,7 @@ def read_ecam_intrinsics(path, cam_i = 2):
     """
     input:
         path (str): path to json
+        cam_i (int): one of [1, 2], 1 for color camera, 2 for event camera
     output:
         M (np.array): 3x3 intrinsic matrix
         dist (list like): distortion (k1, k2, p1, p2, k3)
@@ -34,7 +35,9 @@ def read_ecam_intrinsics(path, cam_i = 2):
     with open(path, 'r') as f:
         data = json.load(f)
     
-    return np.array(data[f"M{cam_i}"]), data[f"dist{cam_i}"][0]
+    dist = data[f"dist{cam_i}"]
+    dist = dist if type(dist[0]) != list else dist[0]
+    return np.array(data[f"M{cam_i}"]), dist
 
 def read_events(path, save_np = False, targ_dir = None):
     """
