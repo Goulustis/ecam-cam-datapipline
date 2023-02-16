@@ -126,12 +126,12 @@ def qua_to_ext(qua, t):
     return np.concatenate([R, t], axis = 1)
 
 
-def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
+def create_interpolated_ecams(eimg_ts, triggers, trig_ecams):
     """
     input:
         eimg_ts (np.array): starting times at which the image is accumulated
         triggers (np.array): col img starting time
-        ecam_trigs (np.array): extrinsics of event camera at trigger times
+        trig_ecams (np.array): world to camera matrix extrinsics of event camera at trigger times
 
     returns:
         ecams_int (np.array): interpolated extrinsic positions
@@ -144,8 +144,8 @@ def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
     trig_end = triggers[trig_idx]
     trig_diff = trig_end - trig_st
 
-    qua_st, tr_st = ext_to_qua(ecams_trig[trig_idx - 1])
-    qua_end, tr_end = ext_to_qua(ecams_trig[trig_idx])
+    qua_st, tr_st = ext_to_qua(trig_ecams[trig_idx - 1])
+    qua_end, tr_end = ext_to_qua(trig_ecams[trig_idx])
 
     for eimg_t in tqdm(eimg_ts, desc="creating interpolated cameras"):
         if eimg_t > trig_end:
@@ -153,8 +153,8 @@ def create_interpolated_ecams(eimg_ts, triggers, ecams_trig):
             if trig_idx >= len(triggers):
                 break
 
-            qua_st, tr_st = ext_to_qua(ecams_trig[trig_idx - 1])
-            qua_end, tr_end = ext_to_qua(ecams_trig[trig_idx])
+            qua_st, tr_st = ext_to_qua(trig_ecams[trig_idx - 1])
+            qua_end, tr_end = ext_to_qua(trig_ecams[trig_idx])
 
             trig_st = triggers[trig_idx - 1]
             trig_end = triggers[trig_idx]
