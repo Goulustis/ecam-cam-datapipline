@@ -1,3 +1,6 @@
+import sys
+sys.path.append(".")
+
 import numpy as np
 import json
 import os
@@ -6,9 +9,9 @@ from nerfies.camera import Camera
 import argparse
 import shutil
 
-from utils import read_triggers, read_ecam_intrinsics, read_events
-from eimg_maker import create_event_imgs
-from slerp_qua import create_interpolated_ecams
+from format_data.utils import read_triggers, read_ecam_intrinsics, read_events
+from format_data.eimg_maker import create_event_imgs
+from format_data.slerp_qua import create_interpolated_ecams
 
 
 def make_camera(ext_mtx, intr_mtx, dist):
@@ -42,13 +45,15 @@ def make_camera(ext_mtx, intr_mtx, dist):
     return new_camera
 
 
-def create_camera_extrinsics(extrinsic_dir, ecams, triggers, intr_mtx, dist):
+def create_and_write_camera_extrinsics(extrinsic_dir, ecams, triggers, intr_mtx, dist, ret_cam=False):
     """
     create the extrinsics and save it
     """
     os.makedirs(extrinsic_dir, exist_ok=True)
+    cameras = []
     for i, (ecam,t) in enumerate(zip(ecams, triggers)):
         camera = make_camera(ecam, intr_mtx, dist)
+        cameras.append(camera)
         targ_cam_path = osp.join(extrinsic_dir, str(i).zfill(6) + ".json")
         print("saving to", targ_cam_path)
         cam_json = camera.to_json()
@@ -56,6 +61,8 @@ def create_camera_extrinsics(extrinsic_dir, ecams, triggers, intr_mtx, dist):
         with open(targ_cam_path, "w") as f:
             json.dump(cam_json, f, indent=2)
 
+    if ret_cam:
+        return cameras
 
 def write_metadata(eimgs_ids, eimgs_ts, targ_dir):
     """
@@ -108,7 +115,7 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, creat
     ecam_path = osp.join(data_path, "e_cams.npy")  ## trigger extrinsics
 
     # read files
-    ecams_trig = np.load(ecam_path) # extrinsics at trigger times
+    trig_ecams = np.load(ecam_path) # extrinsics at trigger times
     intr_mtx, dist = read_ecam_intrinsics(ecam_intrinsics_path)
     triggers = read_triggers(trig_path)
 
@@ -119,11 +126,11 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, creat
 
     save_eimgs(eimgs, targ_dir)
     
-    ecams = create_interpolated_ecams(eimg_ts, triggers, ecams_trig)
+    ecams = create_interpolated_ecams(eimg_ts, triggers, trig_ecams)
 
     ## create nerfies.Camera and save extrinsics
-    extrinsic_dir = osp.join(targ_dir, "camera")
-    create_camera_extrinsics(extrinsic_dir, ecams, eimg_ts, intr_mtx, dist)
+    extrinsic_targ_dir = osp.join(targ_dir, "camera")
+    create_and_write_camera_extrinsics(extrinsic_targ_dir, ecams, eimg_ts, intr_mtx, dist)
 
     # create metadata.json
     write_metadata(eimgs_ids, eimg_ts, targ_dir)
@@ -142,11 +149,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="make the event camera extrinsics dataset")
 
     # data_path is for getting the event h5 and the event camera extrinsics
-    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="data/checker")
-    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/checker/rel_cam.json")
-    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_checker/ecam_set")
-    parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/checker/triggers.txt")
-    parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
+    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="data/rgb_checker")
+    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/rgb_checker/rel_cam.json")
+    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_rgb_checker/ecam_set")
+    parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/rgb_checker/triggers.txt")
+    parser.add_argument("--create_eimgs", choices=["True", "False"], default="False")
     args = parser.parse_args()
 
     format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path, args.create_eimgs)
