@@ -104,7 +104,15 @@ def read_colmap_cam(cam_path, scale=2):
     # cv2 model fx, fy, cx, cy, k1, k2, p1, p2
     return {"M1": int_mtx, "d1":cam.params[4:]}
 
-def create_proj_img_v2(pnts, Rw, tw, int_mtx, dist, img, fig_name="ecam_proj"):
+def cv_draw_points(img, prj_pnts):
+
+    for p in prj_pnts:
+        cv2.circle(img, tuple(p.astype(int)), radius=2, color=(0,0,255), thickness=-1)
+    
+    return img
+
+
+def create_proj_img_v2(pnts, Rw, tw, int_mtx, dist, img, fig_name="ecam_proj", ret_img=False):
     h, w = img.shape[:2]
     prj_pnts, _ = cv2.projectPoints(pnts, Rw, tw, int_mtx, dist)
     prj_pnts = prj_pnts.squeeze()
@@ -112,13 +120,16 @@ def create_proj_img_v2(pnts, Rw, tw, int_mtx, dist, img, fig_name="ecam_proj"):
                 (prj_pnts[:, 1] > 0) & (prj_pnts[:,1] < h)
     prj_pnts = prj_pnts[keep_cond]
 
-    if len(img.shape) == 2 or img.shape[-1] == 1:
-        plt.imshow(img, cmap="gray", vmin=0, vmax=1)
-    else:
-        plt.imshow(img)
+    if ret_img:
+        return cv_draw_points(img, prj_pnts)
+    else:    
+        if len(img.shape) == 2 or img.shape[-1] == 1:
+            plt.imshow(img, cmap="gray", vmin=0, vmax=1)
+        else:
+            plt.imshow(img)
 
-    plt.scatter(prj_pnts[:,0], prj_pnts[:,1], s=1, c='red')
-    plt.savefig(f"{fig_name}.png")
+        plt.scatter(prj_pnts[:,0], prj_pnts[:,1], s=1, c='red')
+        plt.savefig(f"{fig_name}.png")
 
 
 def create_undist_ecam():
@@ -172,14 +183,14 @@ def proj_colcam():
     wcam = read_wcam(wcam_path)
     img = plt.imread(img_path)
 
-    cam = colmap_colcam
+    cam = cv_colcam
     # create_undist_proj_img(img, cam["M1"], cam["d1"], wcam, pts3d, "colmap_colcam")
     create_proj_img_v2(pts3d, wcam[:,:3], wcam[:,3:].squeeze(), 
                        cam['M1'], cam["d1"], img, "colcam_proj")
     
-    sim_meta = find_most_similar(colmap_img, osp.dirname(wcam_path))
-    create_proj_img_v2(pts3d, colmap_img.qvec2rotmat(), colmap_img.tvec, 
-                       cam['M1'], cam["d1"], img, "colcam_proj")
+    # sim_meta = find_most_similar(colmap_img, osp.dirname(wcam_path))
+    # create_proj_img_v2(pts3d, colmap_img.qvec2rotmat(), colmap_img.tvec, 
+    #                    cam['M1'], cam["d1"], img, "colcam_proj")
 
 
 def proj_ecam():
@@ -198,4 +209,4 @@ def proj_ecam():
 
 
 if __name__ == "__main__":
-    proj_ecam()
+    proj_colcam()
