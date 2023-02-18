@@ -33,13 +33,31 @@ def ev_to_img(x, y, p, e_thresh=0.15):
     # e_img = e_img.astype(np.int8)
     return e_img
 
-def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
+def synthesize_fake_triggers(evs_end_t, trig_st=0, n_eimg_per_gap=4, time_delta=5000):
+    """
+    When no triggers is provided, synthesize a set of fake triggers that splits the entire
+    event stream 
+    
+    input:
+        evs_end_t (int): last time stamp of event
+        trig_st (int):   start time of synthetic trigger
+        n_eimg_per_gap (int) : number of event image per gap
+        time_delta(int)  : the time window to accumulate events by
+    """
+    n_eimg_per_gap = 4
+    trig_delta = n_eimg_per_gap*time_delta
+    trig_st = 0
+    triggers = [trig_st+i*trig_delta for i in range((evs_end_t - trig_st)//trig_delta)]
+    return triggers
+
+
+def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True, st_t=0):
     """
     input:
         events (np.array [type (t, x, y, p)]): events
+        triggers (np.array [int]): list of trigger time; will generate tight gap if none
         time_delta (int): time in ms, the time gap to create event images
         st_t (int): starting time to accumulate the event images
-        triggers (np.array [int]): list of trigger time
         create_imgs (bool): actually create the event images, might use this function just to
                             get timestamps and ids
 
@@ -54,16 +72,25 @@ def create_event_imgs(events, triggers, time_delta=5000, create_imgs = True):
     else:
         print("not creating event images, interpolating cameras and creating ids only")
 
-    # number of eimg per trigger gap
-    n_eimg_per_gap = int((triggers[1] - triggers[0]) // time_delta)
+    if (events is not None):
+        t = events["t"]
+        cond = t >= st_t
+        # events = jax.tree_map(lambda x:x[keep_cond], events) #events[keep_cond]
+        t, x, y, p = events["t"][cond], events["x"][cond], events["y"][cond], events["p"][cond]
+    
+    
+    if triggers is not None:
+        # number of eimg per trigger gap
+        n_eimg_per_gap = int((triggers[1] - triggers[0]) // time_delta)
+    else:
+        n_eimg_per_gap = 4
+        triggers = synthesize_fake_triggers(t[-1], n_eimg_per_gap=n_eimg_per_gap, 
+                                            trig_st=st_t)
+
     eimgs = []       # the event images
-    eimgs_ts = []
+    eimgs_ts = []    # timestamp of event images
     eimgs_ids = []   # embedding ids for each img
     trig_ids = []    # id at each trigger
-
-    if (events is not None) and create_imgs:
-        t = events["t"]
-        x, y, p = events["x"], events["y"], events["p"]
 
     id_cnt = 0
     with tqdm(total=n_eimg_per_gap*len(triggers)) as pbar:
