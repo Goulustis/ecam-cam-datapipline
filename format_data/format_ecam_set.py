@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/rgb_checker/rel_cam.json")
     parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_rgb_checker/ecam_set")
     parser.add_argument("--trigger_path", help="path to ecam triggers", default="data/rgb_checker/triggers.txt")
-    parser.add_argument("--create_eimgs", choices=["True", "False"], default="False")
+    parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
     args = parser.parse_args()
 
     format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path, args.create_eimgs)
