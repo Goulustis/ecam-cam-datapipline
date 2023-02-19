@@ -37,7 +37,7 @@ def synthesize_fake_triggers(evs_end_t, trig_st=0, n_eimg_per_gap=4, time_delta=
     """
     When no triggers is provided, synthesize a set of fake triggers that splits the entire
     event stream 
-    
+
     input:
         evs_end_t (int): last time stamp of event
         trig_st (int):   start time of synthetic trigger
@@ -93,7 +93,8 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     trig_ids = []    # id at each trigger
 
     id_cnt = 0
-    with tqdm(total=n_eimg_per_gap*len(triggers)) as pbar:
+    # with tqdm(total=n_eimg_per_gap*len(triggers)) as pbar:
+    with tqdm(total=(len(triggers) - 1)) as pbar:
         # for trig_t in triggers:
         for trig_idx in range(1, len(triggers)):
             trig_st, trig_end = triggers[trig_idx - 1], triggers[trig_idx]
@@ -107,14 +108,11 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
             end_t = trig_st + time_delta
             trig_ids.append(id_cnt)
 
-            for _ in range(n_eimg_per_gap):
+            while st_t < trig_end:
                 if (events is not None) and create_imgs:
                     cond = (st_t <= curr_t) & (curr_t <= end_t)
-                    # img_events = events[cond]
-                    # eimg = ev_to_img(img_events)
                     eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
                     eimgs.append(eimg)
-
 
                 eimgs_ids.append(id_cnt)
                 eimgs_ts.append(st_t)
@@ -122,9 +120,10 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
                 # update
                 st_t = end_t
                 end_t = end_t + time_delta
+                end_t = min(end_t, trig_end)
                 id_cnt += 1
 
-                pbar.update(1)
+            pbar.update(1)
 
     if (events is not None) and create_imgs:
         return np.stack(eimgs), np.array(eimgs_ts, dtype=np.int32), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
