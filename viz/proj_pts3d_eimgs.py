@@ -107,7 +107,7 @@ def read_colmap_cam(cam_path, scale=2):
 def cv_draw_points(img, prj_pnts):
 
     for p in prj_pnts:
-        cv2.circle(img, tuple(p.astype(int)), radius=2, color=(0,0,255), thickness=-1)
+        cv2.circle(img, tuple(p.astype(int)), radius=2, color=(0,255,0), thickness=-1)
     
     return img
 
