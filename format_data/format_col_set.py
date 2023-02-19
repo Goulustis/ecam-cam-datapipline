@@ -196,13 +196,20 @@ class SceneManager:
 
 
 parser = argparse.ArgumentParser(description="process colmap into nerfies dataset")
-parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
-parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
-parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
-parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_checker/colcam_set")
+# parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
+# parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
+# parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
+# parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_checker/colcam_set")
+# parser.add_argument("--blurry_per", help="blurry param used for filtering out blurring images", type=float, default=0)
+# parser.add_argument("--trigger_path", help="path to event triggers", default="data/checker/triggers.txt")
+# parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/formatted_checker/ecam_set/trig_ids.npy")
+parser.add_argument("--img_dir", help="path to images", default="data/rgb_checker/rgb_checker_recon/images")
+parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/rgb_checker/rgb_checker_recon/sparse/0")
+parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=1)
+parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_rgb_checker/colcam_set")
 parser.add_argument("--blurry_per", help="blurry param used for filtering out blurring images", type=float, default=0)
-parser.add_argument("--trigger_path", help="path to event triggers", default="data/checker/triggers.txt")
-parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/formatted_checker/ecam_set/trig_ids.npy")
+parser.add_argument("--trigger_path", help="path to event triggers", default="data/rgb_checker/triggers.txt")
+parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/formatted_rgb_checker/ecam_set/trig_ids.npy")
 args = parser.parse_args()
 
 if args.img_dir is None:
@@ -314,16 +321,16 @@ if blur_filter_perc > 0.0:
 else:
   print("not filtering blurry images")
 
-
-print("removing partially black images")
-print('loading images')
-images = np.stack(list(map(scene_manager.load_image, scene_manager.image_ids)))
-n_pix = np.prod(images[0].shape)
-filter_cond = (images == 0).sum(axis = tuple(i for i in range(1, len(images.shape)))) > n_pix * 0.5
-black_idxs = np.array(scene_manager.image_ids)[filter_cond]
-print("removing black:", black_idxs)
-num_removed = scene_manager.filter_images(black_idxs)
-print(f"removed {num_removed} black images")
+#### not needed anymore since fixed the transmition limit bug ###
+# print("removing partially black images")
+# print('loading images')
+# images = np.stack(list(map(scene_manager.load_image, scene_manager.image_ids)))
+# n_pix = np.prod(images[0].shape)
+# filter_cond = (images == 0).sum(axis = tuple(i for i in range(1, len(images.shape)))) > n_pix * 0.5
+# black_idxs = np.array(scene_manager.image_ids)[filter_cond]
+# print("removing black:", black_idxs)
+# num_removed = scene_manager.filter_images(black_idxs)
+# print(f"removed {num_removed} black images")
 
 
 """### Face Processing.
@@ -333,81 +340,8 @@ This section runs the optional step of computing facial landmarks for the purpos
 
 from tensorflow_graphics.geometry.representation.ray import triangulate as ray_triangulate
 
-use_face = False  # @param {type: 'boolean'}
 
-# @title Compute 2D landmarks.
-
-
-if use_face:
-  mp_face_mesh = mp.solutions.face_mesh
-  mp_drawing = mp.solutions.drawing_utils 
-  drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
-  
-  # Initialize MediaPipe Face Mesh.
-  face_mesh = mp_face_mesh.FaceMesh(
-      static_image_mode=True,
-      max_num_faces=2,
-      min_detection_confidence=0.5)
-  
-  
-  def compute_landmarks(image):
-    height, width = image.shape[:2]
-    results = face_mesh.process(image)
-    if results.multi_face_landmarks is None:
-      return None
-    # Choose first face found.
-    landmarks = results.multi_face_landmarks[0].landmark
-    landmarks = np.array(
-        [(o.x * width, o.y * height) for o in landmarks],
-        dtype=np.uint32)
-    return landmarks
-
-  landmarks_dict = {}
-  for item_id in scene_manager.image_ids:
-    image = scene_manager.load_image(item_id)
-    landmarks = compute_landmarks(image)
-    if landmarks is not None:
-      landmarks_dict[item_id] = landmarks
-  
-  landmark_item_ids = sorted(landmarks_dict)
-  landmarks_pixels = np.array([landmarks_dict[i] for i in landmark_item_ids])
-  landmarks_cameras = [scene_manager.camera_dict[i] for i in landmark_item_ids]
-  
-  from matplotlib import pyplot as plt
-  plt.imshow(image)
-  plt.scatter(x=landmarks[..., 0], y=landmarks[..., 1], s=1);
-
-# @title Triangulate landmarks in 3D.
-
-if use_face:
-  def compute_camera_rays(points, camera):
-    origins = np.broadcast_to(camera.position[None, :], (points.shape[0], 3))
-    directions = camera.pixels_to_rays(points.astype(np.float32))
-    endpoints = origins + directions
-    return origins, endpoints
-  
-  
-  def triangulate_landmarks(landmarks, cameras):
-    all_origins = []
-    all_endpoints = []
-    nan_inds = []
-    for i, (camera_landmarks, camera) in enumerate(zip(landmarks, cameras)):
-      origins, endpoints = compute_camera_rays(camera_landmarks, camera)
-      if np.isnan(origins).sum() > 0.0 or np.isnan(endpoints).sum() > 0.0:
-        continue
-      all_origins.append(origins)
-      all_endpoints.append(endpoints)
-    all_origins = np.stack(all_origins, axis=-2).astype(np.float32)
-    all_endpoints = np.stack(all_endpoints, axis=-2).astype(np.float32)
-    weights = np.ones(all_origins.shape[:2], dtype=np.float32)
-    points = np.array(ray_triangulate(all_origins, all_endpoints, weights))
-  
-    return points
-  
-
-  landmark_points = triangulate_landmarks(landmarks_pixels, landmarks_cameras)
-else:
-  landmark_points = None
+landmark_points = None
 
 # @title Normalize scene based on landmarks.
 from scipy import linalg
@@ -465,19 +399,7 @@ def basis_from_landmarks(landmark_points):
   return np.stack([face_axis_x, face_axis_y, face_axis_z]).T
 
 
-if use_face:
-  face_basis = basis_from_landmarks(landmark_points)
-  new_scene_manager = scene_manager.change_basis(
-      face_basis, landmark_points[NOSE_TIP_IDX])
-  new_cameras = [new_scene_manager.camera_dict[i] for i in landmark_item_ids]
-  new_landmark_points = triangulate_landmarks(landmarks_pixels, new_cameras)
-  face_basis = basis_from_landmarks(landmark_points)
-  scene_to_metric = metric_scale_from_ipd(landmark_points, DEFAULT_IPD)
-  
-  print(f'Computed basis: {face_basis}')
-  print(f'Estimated metric scale = {scene_to_metric:.02f}')
-else:
-  new_scene_manager = scene_manager
+new_scene_manager = scene_manager
 
 """## Compute scene information.
 
@@ -585,8 +507,7 @@ data = [
   scatter_points(near_points),
   scatter_points(far_points),
 ]
-if use_face:
-  data.append(scatter_points(new_landmark_points))
+
 fig = go.Figure(data=data)
 fig.update_layout(scene_dragmode='orbit')
 fig.show()
