@@ -51,7 +51,7 @@ def read_events(path, save_np = False, targ_dir = None):
         return np.load(path)
 
     elif ".h5" in path:
-        np_path = osp.join(osp.basename(path), "events.npy")
+        np_path = osp.join(osp.dirname(path), "events.npy")
         if osp.exists(np_path):
             return np.load(np_path)
 
