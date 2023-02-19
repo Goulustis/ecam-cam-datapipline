@@ -1,7 +1,4 @@
 import numpy as np
-import os.path as osp
-import os
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 def ev_to_img(x, y, p, e_thresh=0.15):
@@ -13,12 +10,10 @@ def ev_to_img(x, y, p, e_thresh=0.15):
     """
     e_thresh = 0.15
     h, w = 720, 1280
-    # x, y, p = evs["x"], evs["y"], evs["p"]
 
     pos_p = p==1
     neg_p = p==0
 
-    # e_img = np.zeros((h,w), dtype=np.int32)
     e_img = np.zeros((h,w), dtype=np.float16)
     cnt = np.zeros((h,w), dtype=np.int32)
 
@@ -27,10 +22,6 @@ def ev_to_img(x, y, p, e_thresh=0.15):
     cnt[y,x] += 1
 
     stat = (e_img.max(), e_img.min())
-    # assert e_img.max() <= 127, "event image value overflow"
-    # assert e_img.min() >= -128, "event image value underflow"
-
-    # e_img = e_img.astype(np.int8)
     return e_img
 
 def synthesize_fake_triggers(evs_end_t, trig_st=0, n_eimg_per_gap=4, time_delta=5000):
@@ -75,7 +66,6 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     if (events is not None):
         t = events["t"]
         cond = t >= st_t
-        # events = jax.tree_map(lambda x:x[keep_cond], events) #events[keep_cond]
         t, x, y, p = events["t"][cond], events["x"][cond], events["y"][cond], events["p"][cond]
     
     
@@ -93,9 +83,7 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     trig_ids = []    # id at each trigger
 
     id_cnt = 0
-    # with tqdm(total=n_eimg_per_gap*len(triggers)) as pbar:
     with tqdm(total=(len(triggers) - 1)) as pbar:
-        # for trig_t in triggers:
         for trig_idx in range(1, len(triggers)):
             trig_st, trig_end = triggers[trig_idx - 1], triggers[trig_idx]
 
