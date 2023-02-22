@@ -338,8 +338,6 @@ else:
 This section runs the optional step of computing facial landmarks for the purpose of test camera generation.
 """
 
-from tensorflow_graphics.geometry.representation.ray import triangulate as ray_triangulate
-
 
 landmark_points = None
 
