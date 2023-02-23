@@ -18,6 +18,7 @@ import imageio
 import mediapipe as mp
 from PIL import Image
 import os
+from tensorflow_graphics.geometry.representation.ray import triangulate as ray_triangulate
 
 
 def convert_colmap_camera(colmap_camera, colmap_image):
