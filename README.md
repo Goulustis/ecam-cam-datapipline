@@ -47,6 +47,9 @@ Inside pnt_dist points will the real distance of between the two points in idx_1
 4.32
 ```
 
+# Note:
+For mean_t, switch trigger.txt to mean ts
+
 # Code Acknowledgement
 ```
 https://github.com/uzh-rpg/e2calib
