@@ -14,7 +14,7 @@ The scripts should be runned in the following sequence:
 2) create_ecam_extrinsics.sh (finds colmap scene scale & event camera extrinsics based on relative camera position)
 3) format_dataset.sh         (creates one scene)
 
-## directory format
+## input directory format
 Assume scene structure in this format (both general scene and checker board scene for calibration)
 ```
 scene
@@ -45,6 +45,33 @@ idx_2
 Inside pnt_dist points will the real distance of between the two points in idx_1, idx_2:
 ```
 4.32
+```
+
+## output directory
+```
+<dataset_name>
+|   rel_cam.json ([not used] check stereo_calib/camera_calibrate.py for details)
+└───colcam_set   (mostly the same as nerfies)
+|   |   dataset.json
+|   |   metadata.json
+|   |   scene.json
+|   └───camera   (same as in nerfies)
+|   |   |    000000.json
+|   |   |    ...
+|   └───rgb
+|       └───1x  (original image size)
+|       |    |   00000.png
+|       |    |   ....
+|       └───2x  (down sized 2x image)
+|            |   ....    
+└───ecam_set
+|   |   dataset.json
+|   |   metadata.json
+|   |   scene.json
+|   |   prcessed_event.h5  (event compatible with prosphesees v2)
+|   └───camera             (same as above)
+|   └───eimgs
+|       |   eimgs_1x.npy   (the accumulated events frames)
 ```
 
 # Note:
