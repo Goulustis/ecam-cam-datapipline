@@ -9,7 +9,7 @@ from nerfies.camera import Camera
 import argparse
 import shutil
 
-from format_data.utils import read_triggers, read_ecam_intrinsics, read_events
+from format_data.utils import read_triggers, read_ecam_intrinsics, read_events, EventBuffer
 from format_data.eimg_maker import create_event_imgs
 from format_data.slerp_qua import create_interpolated_ecams
 
@@ -26,7 +26,7 @@ def make_camera(ext_mtx, intr_mtx, dist):
     R = ext_mtx[:3,:3]
     t = ext_mtx[:3,3]
     k1, k2, p1, p2, k3 = dist
-    coord = -t.T@R  # step to check this is correct
+    coord = -t.T@R  
 
     cx, cy = intr_mtx[:2,2].astype(int)
 
@@ -120,7 +120,8 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, creat
     triggers = read_triggers(trig_path)
 
     ## create event images
-    events = read_events(event_path, save_np=True, targ_dir=targ_dir)
+    # events = read_events(event_path, save_np=True, targ_dir=targ_dir)
+    events = EventBuffer(event_path)
     # events = None
     eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=(create_eimgs=="True"))
 
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     # data_path is for getting the event h5 and the event camera extrinsics
     parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="data/rgb_checker")
     parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/rgb_checker/rel_cam.json")
-    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/formatted_rgb_checker/ecam_set")
+    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/mean_t_rgb_checker/ecam_set")
     parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default="data/rgb_checker/triggers.txt")
     parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
     args = parser.parse_args()

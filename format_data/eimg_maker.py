@@ -14,14 +14,13 @@ def ev_to_img(x, y, p, e_thresh=0.15):
     pos_p = p==1
     neg_p = p==0
 
-    e_img = np.zeros((h,w), dtype=np.float16)
-    cnt = np.zeros((h,w), dtype=np.int32)
+    e_img = np.zeros((h,w), dtype=np.int32)
+    
+    np.add.at(e_img, (y[pos_p], x[pos_p]), 1)
+    np.add.at(e_img, (y[neg_p], x[neg_p]), -1)
+    
+    assert np.abs(e_img).max() < np.iinfo(np.int8).max, "type needs to be bigger"
 
-    e_img[y[pos_p], x[pos_p]] += e_thresh
-    e_img[y[neg_p], x[neg_p]] -= e_thresh
-    cnt[y,x] += 1
-
-    stat = (e_img.max(), e_img.min())
     return e_img
 
 def synthesize_fake_triggers(evs_end_t, trig_st=0, n_eimg_per_gap=4, time_delta=5000):
@@ -63,10 +62,10 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     else:
         print("not creating event images, interpolating cameras and creating ids only")
 
-    if (events is not None):
-        t = events["t"]
-        cond = t >= st_t
-        t, x, y, p = events["t"][cond], events["x"][cond], events["y"][cond], events["p"][cond]
+    # if (events is not None):
+    #     t = events["t"]
+    #     cond = t >= st_t
+    #     t, x, y, p = events["t"][cond], events["x"][cond], events["y"][cond], events["p"][cond]
     
     
     if triggers is not None:
@@ -88,8 +87,8 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
             trig_st, trig_end = triggers[trig_idx - 1], triggers[trig_idx]
 
             if (events is not None) and create_imgs:
-                cond = (trig_st <= t) & (t <= trig_end)
-                curr_t, curr_x, curr_y, curr_p = [e[cond] for e in [t, x, y, p]]
+                curr_t, curr_x, curr_y, curr_p = events.retrieve_data(trig_st, trig_end)
+
             
 
             st_t = trig_st
@@ -103,7 +102,8 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
                     eimgs.append(eimg)
 
                 eimgs_ids.append(id_cnt)
-                eimgs_ts.append(st_t)
+                # eimgs_ts.append(st_t)
+                eimgs_ts.append(int((st_t + end_t)/2))
 
                 # update
                 st_t = end_t
@@ -116,7 +116,7 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     if (events is not None) and create_imgs:
         return np.stack(eimgs), np.array(eimgs_ts, dtype=np.int32), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
     else:
-        return None, np.array(eimgs_ts, dtype=np.int32), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
+        return None, np.array(eimgs_ts), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
 
 
 
