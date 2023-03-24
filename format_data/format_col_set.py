@@ -15,7 +15,7 @@ from pathlib import Path
 import argparse
 
 import imageio
-import mediapipe as mp
+# import mediapipe as mp
 from PIL import Image
 import os
 from tensorflow_graphics.geometry.representation.ray import triangulate as ray_triangulate
@@ -207,10 +207,10 @@ parser = argparse.ArgumentParser(description="process colmap into nerfies datase
 parser.add_argument("--img_dir", help="path to images", default="data/rgb_checker/rgb_checker_recon/images")
 parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/rgb_checker/rgb_checker_recon/sparse/0")
 parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=1)
-parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_rgb_checker/colcam_set")
+parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/dev/colcam_set")
 parser.add_argument("--blurry_per", help="blurry param used for filtering out blurring images", type=float, default=0)
 parser.add_argument("--trigger_path", help="path to event triggers", default="data/rgb_checker/triggers.txt")
-parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/formatted_rgb_checker/ecam_set/trig_ids.npy")
+parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/mean_t_rgb_checker/ecam_set/trig_ids.npy")
 args = parser.parse_args()
 
 if args.img_dir is None:
@@ -687,10 +687,6 @@ with dataset_json_path.open('w') as f:
 print(f'Saved dataset information to {dataset_json_path}')
 
 # @title Save metadata information to `metadata.json`.
-trig_delta = np.diff(triggers).min()
-trig_st = img_trig_dic[scene_manager.image_ids[0]]
-
-# calc_id = lambda img_id : int(np.round((img_trig_dic[img_id] - trig_st)/trig_delta))
 
 import bisect
 
