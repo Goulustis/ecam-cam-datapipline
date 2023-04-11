@@ -30,21 +30,32 @@ def main():
 
     prev_ts = np.full((h, w), trigger_st)
     prev_idxs = np.full((h, w), -1)
-    # lined_data = []
     lined_data = np.empty(len(xs), dtype=linked_Type)
-    for curr_idx, (x,y,t,p) in tqdm(enumerate(zip(xs,ys,ts,ps)), total=len(xs), desc="lining data"):
+    curr_idx = 0
+    for _, (x,y,t,p) in tqdm(enumerate(zip(xs,ys,ts,ps)), total=len(xs), desc="lining data"):
         prev_t = prev_ts[y, x]
         curr_ev = np.array([(x, y, p, t, prev_t, -1)], dtype=linked_Type)
 
         prev_idx = prev_idxs[y, x]
         if prev_idx != -1:
             prev_ev = lined_data[prev_idx]
-            prev_ev[-1] = curr_idx
-        prev_idxs[y, x] = curr_idx
-
-        lined_data[curr_idx] = curr_ev
+            prev_t = prev_ev["t"]
+            
+            if prev_t != t:
+                prev_idxs[y, x] = curr_idx
+                prev_ts[y, x] = t
+                prev_ev[-1] = curr_idx
+                lined_data[curr_idx] = curr_ev
+                curr_idx += 1
+            else:
+                pass
+        else:
+            prev_idxs[y, x] = curr_idx
+            prev_ts[y, x] = t
+            lined_data[curr_idx] = curr_ev
+            curr_idx += 1
     
-    lined_data = np.array(lined_data, dtype=linked_Type)
+    lined_data = lined_data[:curr_idx]
     save_path = osp.join(osp.dirname(ev_path), "linked_events.npy")
     np.save(save_path, lined_data)
 
