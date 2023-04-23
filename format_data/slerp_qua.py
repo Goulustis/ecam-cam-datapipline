@@ -8,9 +8,30 @@ import math
 from colmap_find_scale.read_write_model import qvec2rotmat, rotmat2qvec
 from collections import namedtuple
 from tqdm import tqdm
+from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import Slerp
+from scipy.interpolate import interp1d
 
 _EPS = np.finfo(float).eps * 4.0
 Rmtx = namedtuple("Rmtx", ["flat"])
+
+class CameraSpline:
+    def __init__(self, ts, w2cs, coords):
+        """
+        ts (list: float/ints): location of w2cs
+        coords (list: array): location of camera in 3d space
+        """
+        self.ts = ts
+        self.w2cs = w2cs
+        self.coords = coords
+        
+        self.rot_interpolator = Slerp(self.ts, Rotation.from_matrix(self.w2cs))
+        self.trans_interpolator = interp1d(x=self.ts, y=self.coords, axis=0, kind="cubic", bounds_error=True)
+    
+
+    def interpolate(self, t):
+
+        return self.trans_interpolator(t), self.rot_interpolator(t).as_matrix()
 
 
 def unit_vector(data, axis=None, out=None):
@@ -126,6 +147,46 @@ def qua_to_ext(qua, t):
     return np.concatenate([R, t], axis = 1)
 
 
+# def create_interpolated_ecams(eimg_ts, triggers, trig_ecams):
+#     """
+#     input:
+#         eimg_ts (np.array): starting times at which the image is accumulated
+#         triggers (np.array): col img starting time
+#         trig_ecams (np.array): world to camera matrix extrinsics of event camera at trigger times
+
+#     returns:
+#         ecams_int (np.array): interpolated extrinsic positions
+#     """
+
+#     ecams_int = []
+#     trig_idx = 1
+
+#     trig_st = triggers[trig_idx - 1]
+#     trig_end = triggers[trig_idx]
+#     trig_diff = trig_end - trig_st
+
+#     qua_st, tr_st = ext_to_qua(trig_ecams[trig_idx - 1])
+#     qua_end, tr_end = ext_to_qua(trig_ecams[trig_idx])
+
+#     for eimg_t in tqdm(eimg_ts, desc="creating interpolated cameras"):
+#         if eimg_t > trig_end:
+#             trig_idx += 1
+#             if trig_idx >= len(triggers):
+#                 break
+
+#             qua_st, tr_st = ext_to_qua(trig_ecams[trig_idx - 1])
+#             qua_end, tr_end = ext_to_qua(trig_ecams[trig_idx])
+
+#             trig_st = triggers[trig_idx - 1]
+#             trig_end = triggers[trig_idx]
+#             trig_diff = trig_end - trig_st
+        
+#         frac = (eimg_t - trig_st)/trig_diff
+#         interp_qua = quaternion_slerp(qua_st,qua_end,frac)
+#         ecams_int.append(qua_to_ext(interp_qua, (1-frac)*tr_st + frac*tr_end))
+    
+#     return np.stack(ecams_int)
+
 def create_interpolated_ecams(eimg_ts, triggers, trig_ecams):
     """
     input:
@@ -137,31 +198,21 @@ def create_interpolated_ecams(eimg_ts, triggers, trig_ecams):
         ecams_int (np.array): interpolated extrinsic positions
     """
 
-    ecams_int = []
-    trig_idx = 1
-
-    trig_st = triggers[trig_idx - 1]
-    trig_end = triggers[trig_idx]
-    trig_diff = trig_end - trig_st
-
-    qua_st, tr_st = ext_to_qua(trig_ecams[trig_idx - 1])
-    qua_end, tr_end = ext_to_qua(trig_ecams[trig_idx])
-
-    for eimg_t in tqdm(eimg_ts, desc="creating interpolated cameras"):
-        if eimg_t > trig_end:
-            trig_idx += 1
-            if trig_idx >= len(triggers):
-                break
-
-            qua_st, tr_st = ext_to_qua(trig_ecams[trig_idx - 1])
-            qua_end, tr_end = ext_to_qua(trig_ecams[trig_idx])
-
-            trig_st = triggers[trig_idx - 1]
-            trig_end = triggers[trig_idx]
-            trig_diff = trig_end - trig_st
-        
-        frac = (eimg_t - trig_st)/trig_diff
-        interp_qua = quaternion_slerp(qua_st,qua_end,frac)
-        ecams_int.append(qua_to_ext(interp_qua, (1-frac)*tr_st + frac*tr_end))
+    def split_extrnx(w2cs):
+        Rs = w2cs[:,:3,:3]
+        ts = w2cs[:,:3, 3]
+        return Rs, ts
     
-    return np.stack(ecams_int)
+    Rs, ts = split_extrnx(trig_ecams)
+    cam_spline = CameraSpline(triggers, Rs, ts)
+    int_ts, int_Rs =  cam_spline.interpolate(eimg_ts)
+
+    if len(int_ts.shape) == 2:
+        int_ts = int_ts[..., None]
+    
+    int_cams = np.concatenate([int_Rs, int_ts], axis=-1)
+    bot = np.zeros((4,))
+    bot[-1] = 1
+    bot = bot[None, None]
+    int_cams = np.concatenate([int_cams, np.concatenate([bot]*len(int_cams))], axis = -2)
+    return int_cams
