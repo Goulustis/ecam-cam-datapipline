@@ -36,9 +36,9 @@ def main(imgs_f, save_path=None):
     
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="turn colmap quaterions to extrinsic matrixes")
+    parser = argparse.ArgumentParser(description="turn colmap quaterions to extrinsic world2camera matrixes")
     parser.add_argument("-i", "--img_path", help="path to colmap images.bin")
-    parser.add_argument("-o", "--output_path", help="path to save extrinsic cameras", default=None)
+    parser.add_argument("-o", "--output_path", help="path to save extrinsic world2camera cameras", default=None)
     args = parser.parse_args()
 
     main(args.img_path, args.output_path)
