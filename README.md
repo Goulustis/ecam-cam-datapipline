@@ -28,7 +28,7 @@ scene
 |   |   |   |   images.bin
 |   |   |   |   points3D.bin
 |   |   |   |   cameras.bin
-|   |   scale_pnts.txt               (points selected for finding scene scale)
+|   |   scale_pnts.txt               (points in colmap selected for finding scene scale)
 |   |   pnt_dist.txt                 (actual length of selected points in real world)
 │   events.h5                        (the event data of the scene; in metavision v3.0)
 |   triggers.txt                     (triggers received; on events only; 1 events only)
@@ -36,7 +36,7 @@ scene
 |   e_cams.npy                       (corresponding event camera extrinsics at trigger times; obtained via create_ecam_extrinsics.sh)
 ```
 
-Inside scale points will have 2 idxs:
+Inside scale_pnts.txt will have 2 idxs:
 ```
 idx_1
 idx_2 
