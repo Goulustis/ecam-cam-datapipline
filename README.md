@@ -31,7 +31,7 @@ scene
 |   |   scale_pnts.txt               (points in colmap selected for finding scene scale)
 |   |   pnt_dist.txt                 (actual length of selected points in real world)
 │   events.h5                        (the event data of the scene; in metavision v3.0)
-|   triggers.txt                     (triggers received; on events only; 1 events only)
+|   triggers.txt                     (triggers received; ON events only; 1 events only)
 |   rel_cam.json                     (color to event camera R,t; obtained via find_relative_cam.sh)
 |   e_cams.npy                       (corresponding event camera extrinsics at trigger times; obtained via create_ecam_extrinsics.sh)
 ```
