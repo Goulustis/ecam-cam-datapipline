@@ -11,15 +11,16 @@ echo sourcing
 source ~/.bashrc        # get conda working here
 echo sourcing done
 
+conda activate e2calib
 # checker board 9x6 scene ONLY
 ########################## modify inputs here ##############################
 WORKING_DIR=$(pwd)
-IMAGE_PATH=data/rgb_checker/rgb_checker_recon/images   #[REQUIRED] path to image dir
-EVENT_H5=data/rgb_checker/events.h5                    #[REQUIRED] path to events
-SQUARE_SIZE=4.28                                       #[REQUIRED] size of checkerboard square in desired unit (mm, cm, m)
-COLCAM_PARAM=data/rgb_checker/rgb_checker_recon/sparse/0/cameras.bin   #[OPTIONAL] camera parameters from colmap; put down a non-existent path to not use
-ECAM_PARAM=data/rgb_checker/intrinsics.json            #[OPTIONAL] event camera parameters from prosphesees; put down non-existent path to not use
-TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
+IMAGE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_recons/images   #[REQUIRED] path to image dir
+EVENT_H5=/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_events/events.h5                    #[REQUIRED] path to events
+SQUARE_SIZE=3                                      #[REQUIRED] size of checkerboard square in desired unit (mm, cm, m)
+COLCAM_PARAM=None   #[OPTIONAL] camera parameters from colmap; put down a non-existent path to not use
+ECAM_PARAM=None            #[OPTIONAL] event camera parameters from prosphesees; put down non-existent path to not use
+TRIGGER_PATH=$(dirname $EVENT_H5)/mean_triggers.txt 
 ########################## modify inputs above^^^^^^^^^ ##############################
 IMAGE_PATH=$(realpath $IMAGE_PATH)
 EVENT_H5=$(realpath $EVENT_H5)
@@ -29,7 +30,7 @@ TARGET_EVENT_H5=$(dirname $EVENT_H5)/processed_$(basename $EVENT_H5)
 
 # CREATE EVENT IMAGES
 echo formatting event file for e2calib
-python data_utils/process_event_format.py -i $EVENT_H5 -o $TARGET_EVENT_H5
+python data_utils/process_event_format.py -i $EVENT_H5 -o $TARGET_EVENT_H5 -t $TRIGGER_PATH
 
 conda activate e2calib           # assuming e2calib is installed
 cd third_party/e2calib/python
