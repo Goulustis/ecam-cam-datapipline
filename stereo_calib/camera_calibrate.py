@@ -78,9 +78,12 @@ class StereoCalibration(object):
         self.criteria_cal = (cv2.TERM_CRITERIA_EPS +
                              cv2.TERM_CRITERIA_MAX_ITER, 100, 1e-5)
 
+        self.row, self.col = 5, 8   # inner cornors of the checker, see https://temugeb.github.io/opencv/python/2021/02/02/stereo-camera-calibration-and-triangulation.html
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-        self.objp = np.zeros((9*6, 3), np.float32)
-        self.objp[:, :2] = np.mgrid[0:9, 0:6].T.reshape(-1, 2)
+        # self.objp = np.zeros((9*6, 3), np.float32)
+        # self.objp[:, :2] = np.mgrid[0:9, 0:6].T.reshape(-1, 2)
+        self.objp = np.zeros((self.row*self.col, 3), np.float32)
+        self.objp[:, :2] = np.mgrid[0:self.row, 0:self.col].T.reshape(-1, 2)
         self.objp = self.objp*grid_size
 
         # Arrays to store object points and image points from all the images.
@@ -116,8 +119,8 @@ class StereoCalibration(object):
             gray_to = cv2.cvtColor(img_to, cv2.COLOR_BGR2GRAY)
 
             # Find the chess board corners
-            ret_from, corners_from = cv2.findChessboardCorners(gray_from, (9, 6), None)
-            ret_to, corners_to = cv2.findChessboardCorners(gray_to, (9, 6), None)
+            ret_from, corners_from = cv2.findChessboardCorners(gray_from, (self.row, self.col), None)
+            ret_to, corners_to = cv2.findChessboardCorners(gray_to, (self.row, self.col), None)
 
             # If found, add object points, image points (after refining them)
             if ret_from and ret_to:
@@ -202,9 +205,9 @@ if __name__ == '__main__':
     # Description:
     # find R,t such that # t2 = R1@R + t, where R1 is world to cam
     parser = argparse.ArgumentParser(description="find the relative rotation and positions between 2 cameras")
-    parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", required=True) # R1
-    parser.add_argument("-t", "--to", help="path to images of camera loc to map to", required=True) # R2
-    parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=4.23)
+    parser.add_argument("-f", "--from_imgs", help="path to images of camera to find translation from", default="/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_recons/images") # R1
+    parser.add_argument("-t", "--to", help="path to images of camera loc to map to", default="/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_events/events_imgs") # R2
+    parser.add_argument("-s", "--size", type=float, help="size of the checkerboard square", default=3)
     parser.add_argument("-o", "--out", help="location to save the relative camera output", default=None)
     parser.add_argument("-cp", "--colcam_param", help="path to colmap param binary file", default="None")
     parser.add_argument("-ep", "--ecam_param", help="path to prosphesee event camera param path", default="None")
