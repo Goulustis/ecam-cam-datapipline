@@ -12,7 +12,7 @@ source ~/.bashrc        # get conda working here
 echo sourcing done
 
 conda activate e2calib
-# checker board 9x6 scene ONLY
+# specify your checkerboard in stereo_calib/camera_calibrate.py L81, default = (5,8)
 ########################## modify inputs here ##############################
 WORKING_DIR=$(pwd)
 IMAGE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_recons/images   #[REQUIRED] path to image dir
