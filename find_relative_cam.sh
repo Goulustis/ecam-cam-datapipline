@@ -5,6 +5,7 @@
 
 # This script will create find the relative positions between two cameras
 # run this in project directory (under ./ecam_data_pipeline)
+# The found relative camera will be in world scale
 
 
 echo sourcing
