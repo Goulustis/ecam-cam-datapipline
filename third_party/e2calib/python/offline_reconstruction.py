@@ -25,16 +25,17 @@ if __name__ == "__main__":
     # parser.add_argument('--freq_hz', '-fhz', type=int, default=0, help='Frequency for saving the reconstructed images from events')
     # parser.add_argument('--timestamps_file', '-tsf', help='Path to txt file containing image reconstruction timestamps')
     # parser.add_argument('--upsample_rate', '-u', type=int, default=1, help='Multiplies the number of reconstructions, which effectively lowers the time window of events for E2VID. These intermediate reconstructions will not be saved to disk.')
-    parser.add_argument('--h5file', help='Path to h5 file containing events for reconstruction.', default='/scratch/matthew/projects/event_calib/e2calib/data/checker/processed_events.h5')
+    parser.add_argument('--h5file', help='Path to h5 file containing events for reconstruction.', default='/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_events/processed_events.h5')
     parser.add_argument('--height', type=int, default=720)
     parser.add_argument('--width', type=int, default=1280)
     parser.add_argument('--freq_hz', '-fhz', type=int, default=0, help='Frequency for saving the reconstructed images from events')
-    parser.add_argument('--timestamps_file', '-tsf', help='Path to txt file containing image reconstruction timestamps', default="/scratch/matthew/projects/event_calib/e2calib/data/checker/triggers.txt")
+    parser.add_argument('--timestamps_file', '-tsf', help='Path to txt file containing image reconstruction timestamps', default="/ubc/cs/research/kmyi/matthew/backup_copy/data/calib_checker_events/mean_triggers.txt")
     parser.add_argument('--upsample_rate', '-u', type=int, default=2, help='Multiplies the number of reconstructions, which effectively lowers the time window of events for E2VID. These intermediate reconstructions will not be saved to disk.')
     
     set_inference_options(parser)
 
     args = parser.parse_args()
+    args.use_gpu=True
 
     # Data loader
     if not os.path.isfile(args.h5file):
