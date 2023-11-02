@@ -65,7 +65,7 @@ class TimestampProviderFile(TimestampProviderBase):
 
         assert timestamp_file.exists()
         assert timestamp_file.suffix == '.txt'
-        self.timestamps = np.loadtxt(str(timestamp_file), dtype=np.int64)
+        self.timestamps = np.loadtxt(str(timestamp_file)).astype(np.int64)
 
         self.idx = -1
 
