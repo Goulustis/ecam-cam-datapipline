@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import torch
 
 def ev_to_img(x, y, p, e_thresh=0.15):
     """
@@ -22,6 +23,36 @@ def ev_to_img(x, y, p, e_thresh=0.15):
     assert np.abs(e_img).max() < np.iinfo(np.int8).max, "type needs to be bigger"
 
     return e_img
+
+@torch.no_grad()
+def ev_to_img_torch(x, y, p, e_thresh=0.15):
+    """
+    input:
+        x, y, p (torch.Tensor): x and y are coordinates, p indicates polarity
+    return:
+        event_img (torch.Tensor): of shape (h, w)
+    """
+    h, w = 720, 1280
+    e_img = torch.zeros(h * w, dtype=torch.int32).to(x)
+
+    # Get linear indices
+    linear_indices = y * w + x
+
+    # Separate positive and negative polarity
+    pos = p == 1
+    neg = p == 0
+
+    # Use bincount to accumulate the events
+    e_img += torch.bincount(linear_indices[pos], minlength=h*w)
+    e_img -= torch.bincount(linear_indices[neg], minlength=h*w)
+
+    # Reshape the flattened image back to its original shape
+    e_img = e_img.view(h, w)
+
+    # Ensure that the values are within the valid range for int8
+    assert torch.abs(e_img).max() < torch.iinfo(torch.int8).max, "type needs to be bigger"
+
+    return e_img.cpu().numpy().astype(np.int8)
 
 def synthesize_fake_triggers(evs_end_t, trig_st=0, n_eimg_per_gap=4, time_delta=5000):
     """
@@ -88,6 +119,7 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
 
             if (events is not None) and create_imgs:
                 curr_t, curr_x, curr_y, curr_p = events.retrieve_data(trig_st, trig_end)
+                curr_t, curr_x, curr_y, curr_p = torch.from_numpy(curr_t).cuda(), torch.from_numpy(curr_x.astype(np.int32)).cuda(), torch.from_numpy(curr_y.astype(np.int32)).cuda(), torch.from_numpy(curr_p).cuda()
 
             
 
@@ -98,7 +130,8 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
             while st_t < trig_end:
                 if (events is not None) and create_imgs:
                     cond = (st_t <= curr_t) & (curr_t <= end_t)
-                    eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
+                    # eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
+                    eimg = ev_to_img_torch(curr_x[cond], curr_y[cond], curr_p[cond])
                     eimgs.append(eimg)
 
                 eimgs_ids.append(id_cnt)
