@@ -11,6 +11,7 @@ from tqdm import tqdm
 from scipy.spatial.transform import Rotation
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import interp1d
+import warnings
 
 _EPS = np.finfo(float).eps * 4.0
 Rmtx = namedtuple("Rmtx", ["flat"])
@@ -24,6 +25,10 @@ class CameraSpline:
         self.ts = ts
         self.w2cs = w2cs
         self.coords = coords
+
+        if len(self.ts) != len(self.w2cs):
+            warnings.warn(f"number of triggers {len(self.ts)} != num cameras {len(self.w2cs)}, assume extra cameras are not in triggers")
+            self.w2cs, self.coords = self.w2cs[:len(self.ts)], self.coords[:len(self.ts)]
         
         self.rot_interpolator = Slerp(self.ts, Rotation.from_matrix(self.w2cs))
         self.trans_interpolator = interp1d(x=self.ts, y=self.coords, axis=0, kind="cubic", bounds_error=True)
