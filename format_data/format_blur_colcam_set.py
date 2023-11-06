@@ -60,7 +60,7 @@ def modify_save_dataset(src_dir, dst_dir):
 
 
 def main(src_dir, num_blur=8):
-
+    dst_dir = osp.join(osp.dirname(src_dir), "blur_gamma_colcam_set")
 
     cam_fs = sorted(glob.glob(osp.join(src_dir, "camera/*.json")))
     img_fs = sorted(glob.glob(osp.join(src_dir,"rgb/1x", "*.png")))[:len(cam_fs)]
