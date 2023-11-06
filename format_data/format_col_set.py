@@ -670,7 +670,8 @@ print(f'Saved scene information to {scene_json_path}')
 # @title Save dataset split to `dataset.json`.
 
 all_ids = scene_manager.image_ids
-val_ids = all_ids[::20]
+# val_ids = all_ids[::20]
+val_ids = all_ids[::int(len(all_ids)//15)]
 train_ids = sorted(set(all_ids) - set(val_ids))
 dataset_json = {
     'count': len(scene_manager),
