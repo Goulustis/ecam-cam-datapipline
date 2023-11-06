@@ -787,7 +787,7 @@ for i, image_id in enumerate(train_ids):
       't':img_trig_dic[image_id]
   }
 
-for i, image_id in enumerate(val_ids):
+for i, image_id in enumerate(val_ids + test_ids):
   i = bisect.bisect_left(train_ids, image_id)
   metadata_json[image_id] = {
       'warp_id': img_trig_id_dic[image_id],
