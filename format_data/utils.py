@@ -20,7 +20,7 @@ class EventBuffer:
 
         self.fs = [self.x_f, self.y_f, self.p_f, self.t_f]
 
-        self.n_retrieve = 10000
+        self.n_retrieve = 5000000
         self.x_cache = np.array([self.x_f[0]])
         self.y_cache = np.array([self.y_f[0]])
         self.t_cache = np.array([self.t_f[0]])
