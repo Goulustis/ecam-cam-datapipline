@@ -19,6 +19,12 @@ import imageio
 from PIL import Image
 import os
 from tensorflow_graphics.geometry.representation.ray import triangulate as ray_triangulate
+from tqdm import tqdm
+from concurrent import futures
+
+import glob
+import scipy.ndimage as ndimage
+import scipy.signal as signal
 
 
 def convert_colmap_camera(colmap_camera, colmap_image):
@@ -195,6 +201,86 @@ class SceneManager:
 
     return num_filtered
 
+def parallel_map(f, iterable, max_threads=None, show_pbar=False, desc="", **kwargs):
+  """Parallel version of map()."""
+  with futures.ThreadPoolExecutor(max_threads) as executor:
+    if show_pbar:
+      results = tqdm(
+          executor.map(f, iterable, **kwargs), total=len(iterable), desc=desc)
+    else:
+      results = executor.map(f, iterable, **kwargs)
+    return list(results)
+
+
+def find_clear_val_test(scene_manager):
+    # Get list of images in folder
+    
+    ignore_first = 40
+    # img_list = img_list[ignore_first:]
+    img_idxs = scene_manager.image_ids[ignore_first:]
+
+    # Load images
+    # images = list(map(imageio.imread, tqdm.tqdm(img_list)))
+    images = parallel_map(scene_manager.load_image, img_idxs, show_pbar=True, desc="loading imgs")
+
+    blur_scores = []
+    laplacian_kernel = np.array([
+        [0, 1, 0],
+        [1, -4, 1],
+        [0, 1, 0]
+    ], dtype=np.float32)
+    blur_kernels = np.array([[
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0]
+    ], [
+        [1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 1]
+    ], [
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0]
+    ], [
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 1, 0],
+        [0, 0, 1, 0, 0],
+        [0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 0]
+    ]], dtype=np.float32) / 5.0
+    for image in tqdm(images, desc="caculating blur score"):
+        gray_im = np.mean(image, axis=2)[::4, ::4]
+
+        directional_blur_scores = []
+        for i in range(4):
+            blurred = ndimage.convolve(gray_im, blur_kernels[i])
+
+            laplacian = signal.convolve2d(blurred, laplacian_kernel, mode="valid")
+            var = laplacian**2
+            var = np.clip(var, 0, 1000.0)
+
+            directional_blur_scores.append(np.mean(var))
+
+        antiblur_index = (np.argmax(directional_blur_scores) + 2) % 4
+
+        blur_score = directional_blur_scores[antiblur_index]
+        blur_scores.append(blur_score)
+    
+    ids = np.argsort(blur_scores) + ignore_first
+    best = ids[-30:]
+    np.random.shuffle(best)
+    # best = list(str(x) for x in best)
+
+    # test, val = best[:15], best[15:]
+    clear_image_idxs = [scene_manager.image_ids[e] for e in best]
+    # return test, val
+    return clear_image_idxs[:15], clear_image_idxs[15:]
 
 parser = argparse.ArgumentParser(description="process colmap into nerfies dataset")
 # parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
@@ -670,15 +756,16 @@ print(f'Saved scene information to {scene_json_path}')
 # @title Save dataset split to `dataset.json`.
 
 all_ids = scene_manager.image_ids
-# val_ids = all_ids[::20]
-val_ids = all_ids[::int(len(all_ids)//15)]
-train_ids = sorted(set(all_ids) - set(val_ids))
+val_ids, test_ids = find_clear_val_test(scene_manager)
+# val_ids = all_ids[::int(len(all_ids)//15)]
+train_ids = sorted(set(all_ids) - set(val_ids + test_ids))
 dataset_json = {
     'count': len(scene_manager),
     'num_exemplars': len(train_ids),
     'ids': scene_manager.image_ids,
     'train_ids': train_ids,
     'val_ids': val_ids,
+    'test_ids': test_ids
 }
 
 dataset_json_path = root_dir / 'dataset.json'
