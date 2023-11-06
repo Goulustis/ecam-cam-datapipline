@@ -25,7 +25,7 @@ def save_imgs_cams(imgs, cam_fs, dst_dir):
     os.makedirs(osp.join(dst_dir, "camera"), exist_ok=True)
     os.makedirs(osp.join(dst_dir, "rgb/1x"), exist_ok=True)
     
-    for i, (img, cam_f) in tqdm(enumerate(zip(imgs, cam_fs)), total=len(imgs)):
+    for i, (img, cam_f) in tqdm(enumerate(zip(imgs, cam_fs)), total=len(imgs), desc="saving imgs, cams"):
         dst_img_f = osp.join(dst_dir, "rgb/1x",f"{str(i).zfill(4)}.png")
         dst_cam_f = osp.join(dst_dir, "camera" ,f"{str(i).zfill(4)}.json")
         save_flag = cv2.imwrite(dst_img_f, np.clip(0,255,img).astype(np.uint8))
@@ -61,12 +61,13 @@ def modify_save_dataset(src_dir, dst_dir):
 
 def main(src_dir, num_blur=8):
     dst_dir = osp.join(osp.dirname(src_dir), "blur_gamma_colcam_set")
+    print("saving to:", dst_dir)
 
     cam_fs = sorted(glob.glob(osp.join(src_dir, "camera/*.json")))
     img_fs = sorted(glob.glob(osp.join(src_dir,"rgb/1x", "*.png")))[:len(cam_fs)]
 
     
-    imgs = np.stack(parallel_map(lambda x : cv2.imread(x), img_fs, show_pbar=True))
+    imgs = np.stack(parallel_map(lambda x : cv2.imread(x), img_fs, show_pbar=True, desc="loading imgs"))
     
     blur_imgs = np.zeros((int(len(cam_fs)//num_blur), *imgs[0].shape), dtype=np.float32)
     mid_idxs = []
