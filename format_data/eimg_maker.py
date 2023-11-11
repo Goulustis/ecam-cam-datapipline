@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-import torch
+# import torch
 
 def ev_to_img(x, y, p, e_thresh=0.15):
     """
@@ -24,7 +24,7 @@ def ev_to_img(x, y, p, e_thresh=0.15):
 
     return e_img
 
-@torch.no_grad()
+# @torch.no_grad()
 def ev_to_img_torch(x, y, p, e_thresh=0.15):
     """
     input:
@@ -119,7 +119,7 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
 
             if (events is not None) and create_imgs:
                 curr_t, curr_x, curr_y, curr_p = events.retrieve_data(trig_st, trig_end)
-                curr_t, curr_x, curr_y, curr_p = torch.from_numpy(curr_t).cuda(), torch.from_numpy(curr_x.astype(np.int32)).cuda(), torch.from_numpy(curr_y.astype(np.int32)).cuda(), torch.from_numpy(curr_p).cuda()
+                # curr_t, curr_x, curr_y, curr_p = torch.from_numpy(curr_t).cuda(), torch.from_numpy(curr_x.astype(np.int32)).cuda(), torch.from_numpy(curr_y.astype(np.int32)).cuda(), torch.from_numpy(curr_p).cuda()
 
             
 
@@ -130,8 +130,8 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
             while st_t < trig_end:
                 if (events is not None) and create_imgs:
                     cond = (st_t <= curr_t) & (curr_t <= end_t)
-                    # eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
-                    eimg = ev_to_img_torch(curr_x[cond], curr_y[cond], curr_p[cond])
+                    eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
+                    # eimg = ev_to_img_torch(curr_x[cond], curr_y[cond], curr_p[cond])
                     eimgs.append(eimg)
 
                 eimgs_ids.append(id_cnt)
