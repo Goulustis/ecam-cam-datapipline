@@ -37,9 +37,13 @@ def proj_3d_pnts(img, intrinsics, extrinsics, pnt_idxs, pnts_3d, dist_coeffs=Non
     # Draw points and labels on the image
     img_with_pnts = img.copy()
     for i, p in enumerate(proj_pnts_2d):
-        point = tuple(p[0].astype(int))
-        cv2.circle(img_with_pnts, point, 5, (0, 255, 0), -1)
-        cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        try:
+            point = tuple(p[0].astype(int))
+            cv2.circle(img_with_pnts, point, 5, (0, 255, 0), -1)
+            cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        except Exception as e:
+            print("ERROR:", e)
+            
 
     return proj_pnts_2d, img_with_pnts
 
@@ -124,11 +128,11 @@ class Camera:
     def get_dist_coeffs(self):
         return np.array([self.k1, self.k2, self.p1, self.p2])
 
-class SceneManager:
+class ColSceneManager:
     """
     retrieves corresponding 3d points and plot them in 3d
     """
-    def __init__(self, colmap_dir):
+    def __init__(self, colmap_dir, sample_method="reliable"):
         """
         colmap_dir = xxx_recons/
                          /images
@@ -140,16 +144,46 @@ class SceneManager:
         self.img_fs = sorted(glob.glob(osp.join(self.img_dir, "*.png")))
         self.images = colmap_utils.read_images_binary(osp.join(self.colmap_dir, "sparse/0/images.bin"))
         self.pnts_3d = colmap_utils.read_points3D_binary(osp.join(self.colmap_dir,"sparse/0","points3D.bin"))
-        self.cameras = Camera(osp.join(self.colmap_dir, "sparse/0", "cameras.bin"))
+        self.camera = Camera(osp.join(self.colmap_dir, "sparse/0", "cameras.bin"))
         self.chosen_points = None
         self.pnts_2d=None
 
-    
-    def load_camera(cam_f):
-        camera=colmap_utils.read_cameras_binary(osp.join(self.colmap_dir, "sparse/0", "cameras.bin"))
+        self.sample_pnt_fnc_dic = {"rnd": self.sample_points_rnd,
+                                   "reliable": self.sample_pnts_reliable}
+        self.sample_method = sample_method
+        self.sample_pnt_fnc = self.sample_pnt_fnc_dic[sample_method]
+
+    def set_sample_method(self, method):
+        self.sample_method = method
+        self.sample_pnt_fnc = self.sample_pnt_fnc_dic[self.sample_method]
+
+    def sample_pnts_reliable(self, img_idx=None, sample_n_points=16):
+        # pnt_idxs = self.images[img_idx].point3D_ids
+        # val_cond = pnt_idxs != -1
+        # val_idxs = self.images[img_idx].point
+        # 
+        # for idx in val_idxs:
+        #     num_imgs.append(len(self.pnts_3d[idx].image_ids))
+        # ids = val_idxs_ids[val_cond]
+
+        #####################################################
+        ids = []
+        num_imgs = []
+        for k, pnt in self.pnts_3d.items():
+            ids.append(k)
+            num_imgs.append(len(pnt.image_ids))
+        
+        ids = np.array(ids)
+        #####################################################
+
+        num_imgs = np.array(num_imgs)
+        sorted_idxs = np.argsort(num_imgs)[::-1]
+        # return np.random.choice(ids[sorted_idxs[:len(ids)//2]], size=sample_n_points)
+        return np.random.choice(ids[sorted_idxs[:len(ids)//4]], size=sample_n_points)
 
 
-    def sample_points(self, img_idx, sample_n_points=16):
+
+    def sample_points_rnd(self, img_idx, sample_n_points=16):
         pnt_idxs = self.images[img_idx].point3D_ids
         val_cond = pnt_idxs != -1
 
@@ -160,7 +194,7 @@ class SceneManager:
                               "xyzs": self.get_points_xyzs(val_idxs[chosen_idxs])}
 
         self.pnts_2d = val_pnts
-        return self.chosen_points
+        return self.chosen_points["idxs"]
 
 
     def img_to_extrnxs(self, img_idx=None, img_obj=None):
@@ -176,20 +210,21 @@ class SceneManager:
         return mtx
 
 
-    def view_img_poins(self, img_idx, rnd=False, sample_n_points = 16, chosen_pnt_idxs = None):
+    def view_img_poins(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
         """
         view points in idx image
         """
         
         if chosen_pnt_idxs is not None:
             chosen_pnt_idxs = chosen_pnt_idxs if type(chosen_pnt_idxs) == np.ndarray else np.array(chosen_pnt_idxs)
-            self.chosen_points = {"idxs": chosen_pnt_idxs,
-                                  "xyzs": self.get_points_xyzs(chosen_pnt_idxs)}
-        elif rnd or self.chosen_points is None:
-            self.sample_points(img_idx, sample_n_points=sample_n_points)
+        elif self.chosen_points is None:
+            chosen_pnt_idxs = self.sample_pnt_fnc(img_idx, sample_n_points=sample_n_points)
+        
+        self.chosen_points = {"idxs": chosen_pnt_idxs,
+                              "xyzs": self.get_points_xyzs(chosen_pnt_idxs)}
         
         img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(self.img_fs[img_idx]),  \
-                                                 self.cameras.intrxs, \
+                                                 self.camera.intrxs, \
                                                  self.img_to_extrnxs(img_idx), \
                                                  self.chosen_points["idxs"], \
                                                  self.chosen_points["xyzs"] 
@@ -197,12 +232,11 @@ class SceneManager:
         img_3d = proj_3d_pnts(np.copy(img), intrxs, extrxs, pnt_idxs, pnts_3d)[1]
 
         #### debug ####
-        # if self.pnts_2d is None:
-        #     self.get_points_xy(img_idx, chosen_pnt_idxs)
-        # img_2d = draw_2d_pnts(img, self.pnts_2d, pnt_idxs)
+        if self.pnts_2d is None:
+            _, pnt_idxs = self.get_points_xy(img_idx, chosen_pnt_idxs)
+        img_2d = draw_2d_pnts(img, self.pnts_2d, pnt_idxs)
 
-        # comb_img = concat_imgs(img_3d, img_2d)
-        # assert 0
+        comb_img = concat_imgs(img_3d, img_2d)
         #### debug ####
         return img_3d
         
@@ -218,7 +252,7 @@ class SceneManager:
         val_pnts = self.images[img_idx].xys[pnt_cond]
 
         self.pnts_2d = val_pnts
-        return self.pnts_2d
+        return self.pnts_2d, pnt_idxs[pnt_cond]
 
 
     def get_points_xyzs(self, pnt_idxs):
@@ -236,5 +270,6 @@ class SceneManager:
 
 if __name__ == "__main__":
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons"
-    manager = SceneManager(colmap_dir)
-    manager.view_img_poins(3, chosen_pnt_idxs=[1018, 723])
+    manager = ColSceneManager(colmap_dir)
+    manager.view_img_poins(3)
+
