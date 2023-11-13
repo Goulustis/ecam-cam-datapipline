@@ -4,6 +4,7 @@ import os.path as osp
 import glob
 import cv2
 from tqdm import tqdm
+import argparse
 
 import colmap_find_scale.read_write_model as colmap_utils
 from extrinsics_correction.colmap_scene_manager import ColSceneManager
@@ -41,11 +42,11 @@ def create_video_from_images(imgs, output_filename='output.avi', fps=15):
     out.release()
 
 
-def main():
-    colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons"
-    ev_recon_img_dir="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/ev_imgs/e2calib"
-    ecam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/e_cams.npy"
-    rel_cam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/rel_cam.json"
+def main(colmap_dir, ev_recon_img_dir, ecam_f, rel_cam_f):
+    # colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons"
+    # ev_recon_img_dir="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/ev_imgs/e2calib"
+    # ecam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/e_cams.npy"
+    # rel_cam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/rel_cam.json"
 
     colmap_manager = ColSceneManager(colmap_dir)
     ev_manager = EvSceneManager(ev_recon_img_dir, ecam_f, rel_cam_f)
@@ -72,6 +73,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--colmap_dir", help="folder to xxx_recons")
+    parser.add_argument("--ev_imgs_dir", help="folder containing *.png")
+    parser.add_argument("--ecam_f", help="folder containing the extrinsics of the event camera")
+    parser.add_argument("--relcam_f", help="path to rel_cam.json")
+    args = parser.parse_args()
+
+
+    main(args.colmap_dir, args.ev_imgs_dir, args.ecam_f, args.relcam_f)
 
     
