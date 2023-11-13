@@ -75,7 +75,7 @@ def draw_2d_pnts(img, pnts_2d, pnt_idxs):
 
 def concat_imgs(img1, img2):
     """
-    Concatenate two images horizontally, padding the shorter image to match the height of the taller one.
+    Concatenate two images horizontally, padding the shorter image equally on top and bottom to match the height of the taller one.
 
     Parameters:
     img1 (np.array): First image.
@@ -91,18 +91,23 @@ def concat_imgs(img1, img2):
     # Determine the maximum height
     max_height = max(h1, h2)
 
-    # If the heights are different, pad the shorter image
+    # Function to pad an image to the max height
+    def pad_image(img, height, width):
+        diff = height - img.shape[0]
+        pad_top = diff // 2
+        pad_bottom = diff - pad_top
+        pad_top = np.zeros((pad_top, width, 3), dtype=np.uint8)
+        pad_bottom = np.zeros((pad_bottom, width, 3), dtype=np.uint8)
+        return np.vstack((pad_top, img, pad_bottom))
+
+    # Pad the images if necessary
     if h1 < max_height:
-        diff = max_height - h1
-        pad = np.zeros((diff, w1, 3), dtype=np.uint8)
-        img1_padded = np.vstack((img1, pad))
+        img1_padded = pad_image(img1, max_height, w1)
     else:
         img1_padded = img1
 
     if h2 < max_height:
-        diff = max_height - h2
-        pad = np.zeros((diff, w2, 3), dtype=np.uint8)
-        img2_padded = np.vstack((img2, pad))
+        img2_padded = pad_image(img2, max_height, w2)
     else:
         img2_padded = img2
 
