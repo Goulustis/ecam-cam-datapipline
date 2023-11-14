@@ -47,7 +47,7 @@ class EventBuffer:
         self.t_cache = self.t_cache[cond]
 
     def retrieve_data(self, st_t, end_t):
-        while self.t_cache[-1] <= end_t and (self.curr_pnter < len(self.t_f)):
+        while (self.curr_pnter < len(self.t_f)) and (self.t_cache[-1] <= end_t):
             self.update_cache()
         
         ret_cond = ( st_t<= self.t_cache) & (self.t_cache <= end_t)
@@ -55,6 +55,14 @@ class EventBuffer:
         self.drop_cache_by_cond(~ret_cond)
 
         return ret_data
+    
+    def drop_cache_by_t(self, t):
+        cond = self.t_cache >= t
+        self.drop_cache_by_cond(cond)
+
+    # def pass_end(self):
+    #     return self.curr_pnter >= len(self.t_f)
+    
 
 
 def read_triggers(path):
