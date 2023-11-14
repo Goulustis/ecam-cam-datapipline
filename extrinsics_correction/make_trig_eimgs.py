@@ -19,6 +19,8 @@ def create_eimg_by_triggers(events, triggers, exposure_time = 5000):
         eimg = ev_to_img(curr_x, curr_y, curr_p)
         eimg[eimg != 0] = 255
         eimgs[i] = eimg
+        
+        events.drop_cache_by_t(st_t)
     
     return eimgs
 
