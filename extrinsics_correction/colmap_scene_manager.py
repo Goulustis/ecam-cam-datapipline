@@ -237,11 +237,11 @@ class ColSceneManager:
         img_3d = proj_3d_pnts(np.copy(img), intrxs, extrxs, pnt_idxs, pnts_3d)[1]
 
         #### debug ####
-        if self.pnts_2d is None:
-            _, pnt_idxs = self.get_points_xy(img_idx, chosen_pnt_idxs)
-        img_2d = draw_2d_pnts(img, self.pnts_2d, pnt_idxs)
+        # if self.pnts_2d is None:
+        #     _, pnt_idxs = self.get_points_xy(img_idx, chosen_pnt_idxs)
+        # img_2d = draw_2d_pnts(img, self.pnts_2d, pnt_idxs)
 
-        comb_img = concat_imgs(img_3d, img_2d)
+        # comb_img = concat_imgs(img_3d, img_2d)
         #### debug ####
         return img_3d
         
