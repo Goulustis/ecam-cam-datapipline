@@ -2,7 +2,7 @@
 conda activate nstudio
 
 WORKDIR=/scratch-ssd/dense_workdir
-COLMAP_DIR=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons
+COLMAP_DIR=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/book_sofa_recons
 
 WORK_COLMAP=$WORKDIR/$(basename $COLMAP_DIR)
 

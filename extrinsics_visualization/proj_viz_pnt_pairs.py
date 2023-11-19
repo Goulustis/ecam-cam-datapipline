@@ -43,15 +43,15 @@ def create_video_from_images(imgs, output_filename='output.avi', fps=15):
 
 
 def main(colmap_dir, ev_recon_img_dir, ecam_f, rel_cam_f):
-    # colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons"
-    # ev_recon_img_dir="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/ev_imgs/e2calib"
-    # ecam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/e_cams.npy"
-    # rel_cam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/rel_cam.json"
+    colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons"
+    ev_recon_img_dir="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/ev_imgs/e2calib"
+    ecam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/e_cams.npy"
+    rel_cam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/rel_cam.json"
 
     colmap_manager = ColSceneManager(colmap_dir)
     ev_manager = EvSceneManager(ev_recon_img_dir, ecam_f, rel_cam_f)
 
-    colmap_manager.view_img_poins(3)  ## initialize some points for projection
+    colmap_manager.view_img_poins(img_idx=3)  # initialize some points for projection
     pnts_idxs, pnts_3d = colmap_manager.chosen_points["idxs"],  colmap_manager.chosen_points["xyzs"]
 
     vid_frames = []
