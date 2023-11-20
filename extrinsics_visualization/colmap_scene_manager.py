@@ -218,6 +218,7 @@ class ColSceneManager:
     def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
         """
         view points in idx image
+        img_idx = colmap_idx
         """
         
         if chosen_pnt_idxs is not None:
@@ -228,7 +229,8 @@ class ColSceneManager:
         self.chosen_points = {"idxs": chosen_pnt_idxs,
                               "xyzs": self.get_points_xyzs(chosen_pnt_idxs)}
         
-        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(self.img_fs[img_idx]),  \
+        ## colmap idx is 1 index, img_fs is 0 indexed
+        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(self.img_fs[img_idx - 1]),  \
                                                  self.camera.intrxs, \
                                                  self.img_to_extrnxs(img_idx), \
                                                  self.chosen_points["idxs"], \
