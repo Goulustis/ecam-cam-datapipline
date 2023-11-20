@@ -51,14 +51,14 @@ def main(colmap_dir, ev_recon_img_dir, ecam_f, rel_cam_f):
     colmap_manager = ColSceneManager(colmap_dir)
     ev_manager = EvSceneManager(ev_recon_img_dir, ecam_f, rel_cam_f)
 
-    colmap_manager.view_img_poins(img_idx=3)  # initialize some points for projection
+    colmap_manager.view_img_points(img_idx=3)  # initialize some points for projection
     pnts_idxs, pnts_3d = colmap_manager.chosen_points["idxs"],  colmap_manager.chosen_points["xyzs"]
 
     vid_frames = []
     for i in tqdm(range(len(ev_manager)), desc="projecting images"):
         ev_img, ev_intrxs, ev_extrxs, ev_dist_coeffs = ev_manager.get_data(i)
         
-        rgb_prj_img = colmap_manager.view_img_poins(i+1,chosen_pnt_idxs=pnts_idxs)
+        rgb_prj_img = colmap_manager.view_img_points(i+1,chosen_pnt_idxs=pnts_idxs)
         ev_prj_img = proj_3d_pnts(ev_img, ev_intrxs, ev_extrxs, pnts_idxs, pnts_3d, ev_dist_coeffs)[1]
         comb_img = concat_imgs(rgb_prj_img, ev_prj_img)
         vid_frames.append(comb_img)

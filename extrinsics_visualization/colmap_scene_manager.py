@@ -215,7 +215,7 @@ class ColSceneManager:
         return mtx
 
 
-    def view_img_poins(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
+    def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
         """
         view points in idx image
         """
@@ -276,5 +276,5 @@ class ColSceneManager:
 if __name__ == "__main__":
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/atrium_b2_v1_recons"
     manager = ColSceneManager(colmap_dir)
-    manager.view_img_poins(3)
+    manager.view_img_points(3)
 
