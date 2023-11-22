@@ -217,6 +217,16 @@ class ColSceneManager:
     def get_intrnxs(self):
         return self.camera.intrxs, self.camera.get_dist_coeffs()
 
+    def get_img(self, img_idx):
+        """
+        img_idx = colmap_img_idx
+        """
+        assert img_idx > 0, "colmap img is 1 indexed!"
+        return cv2.imread(self.get_img_f(img_idx))
+
+
+    def get_img_f(self, img_idx):
+        return osp.join(self.img_dir, self.images[img_idx].name)
 
     def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
         """
@@ -233,7 +243,7 @@ class ColSceneManager:
                               "xyzs": self.get_points_xyzs(chosen_pnt_idxs)}
         
         ## colmap idx is 1 index, img_fs is 0 indexed:: self.img_fs[img_idx - 1])
-        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(osp.join(self.img_dir, self.images[img_idx].name)),  \
+        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(self.get_img_f(img_idx)),  \
                                                  self.camera.intrxs, \
                                                  self.get_extrnxs(img_idx), \
                                                  self.chosen_points["idxs"], \
