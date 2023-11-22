@@ -1,11 +1,11 @@
 from extrinsics_visualization.colmap_scene_manager import ColSceneManager
-import os
 import os.path as osp
 import glob
 import matplotlib.pyplot as plt
 from utils.images import calc_clearness_score
 from extrinsics_correction.point_selector import ImagePointSelector
 import numpy as np
+import cv2
 
 WORK_DIR=osp.dirname(__file__)
 SAVE_DIR=osp.join(WORK_DIR, "chosen_triang_pnts")
@@ -22,9 +22,30 @@ def select_triag_pnts():
     selector.save_ref_img()
 
 
+def find_correspondance(ori_pnts, selected_pnts):
+    dists = np.sqrt(((ori_pnts[:, None] - selected_pnts[None])**2).sum(axis=-1))
+    idxs = dists.argmin(axis=0)
+    return idxs
+
+def gen_point_img(pnts, radius=5):
+    pnts = pnts / np.linalg.norm(pnts[1] - pnts[0])
+    pix_gap = 64
+    pnts = pnts * pix_gap
+    pnts = pnts + pix_gap
+    pnts = pnts.astype(int)
+
+    w,h = pnts.max(axis=0) + pix_gap
+    img_size = (h, w, 3)
+    img = np.full(img_size, 255, dtype=np.uint8)
+
+    for pnt in pnts:
+        cv2.circle(img, pnt, radius, (0,0,0), -1)
+    
+    return img, pnts
 
 
 def select_3d_coords():
+    save_dir = "img_pnts/sofa_soccer_dragon"
 
     # Initialize 3D points
     objp = np.zeros((5*8, 3), np.float32)
@@ -32,30 +53,30 @@ def select_3d_coords():
 
     # Dropping the last coordinate (Z-coordinate) for 2D plotting
     objp_2d = objp[:, :2]
-
-    # Create a 2D plot
-    plt.figure(figsize=(10, 8))
-    for idx, point in enumerate(objp_2d):
-        plt.scatter(point[0], point[1], c='blue', marker='o')
-        plt.text(point[0], point[1], str(idx), fontsize=9, ha='right')
-
-    # Set labels and title
-    plt.xlabel('X Coordinate')
-    plt.ylabel('Y Coordinate')
-    plt.title('2D Plot of 3D Points (Z-coordinate dropped)')
+    
+    proj_img, norm_pnts = gen_point_img(objp_2d)
 
     # Save the plot as an image
     pnt_plot_f = osp.join(WORK_DIR, '2d_points_plot.png')
-    plt.savefig(pnt_plot_f, dpi=300)
-    plt.close()
+    cv2.imwrite(pnt_plot_f, proj_img)
 
     selector = ImagePointSelector([pnt_plot_f], save=False)
+    pnts = np.array(selector.select_points()[0])
+    pnt_scale = np.linalg.norm(pnts[1] - pnts[0])
+    ori_scale = np.linalg.norm(norm_pnts[1] - norm_pnts[0])
 
-    # SELECT POINTS, FIND COORESPONDENCE, SAVE THE 3D POINTS
+    pnts = pnts/pnt_scale
+    norm_objp = norm_pnts/ori_scale
+    corr_idxs = find_correspondance(norm_objp, pnts)
+
+    chosen_pnts = objp[corr_idxs]
+
+    np.save(osp.join(save_dir, "corr_3d_pnts.pny"), chosen_pnts)
 
 
 
 
 
 if __name__ == "__main__":
-    select_triag_pnts()
+    # select_triag_pnts()
+    select_3d_coords()
