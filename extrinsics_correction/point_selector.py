@@ -4,7 +4,7 @@ import os
 import os.path as osp
 
 class ImagePointSelector:
-    def __init__(self, image_paths, show_point_indices=False, save=True, save_dir = None):
+    def __init__(self, image_paths, show_point_indices=True, save=True, save_dir = None):
         self.image_paths = image_paths
         self.images = [cv2.imread(path) for path in image_paths]
         self.copies = [img.copy() for img in self.images]
@@ -56,7 +56,7 @@ class ImagePointSelector:
         total_width = 0
         for idx, points in enumerate(self.points):
             for pidx, point in enumerate(points):
-                cv2.circle(self.composite_image, (point[0] + total_width, point[1] + self.top_paddings[idx]), 5, (0, 255, 0), -1)
+                cv2.circle(self.composite_image, (point[0] + total_width, point[1] + self.top_paddings[idx]), 2, (0, 255, 0), -1)
                 if self.show_point_indices:
                     cv2.putText(self.composite_image, str(pidx), (point[0] + total_width + 10, point[1] + self.top_paddings[idx] + 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
