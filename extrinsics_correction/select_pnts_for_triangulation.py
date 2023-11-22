@@ -1,11 +1,13 @@
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager
+import json
 import os.path as osp
 import glob
 import matplotlib.pyplot as plt
 from utils.images import calc_clearness_score
-from extrinsics_correction.point_selector import ImagePointSelector
 import numpy as np
 import cv2
+
+from extrinsics_correction.point_selector import ImagePointSelector
+from extrinsics_visualization.colmap_scene_manager import ColSceneManager
 
 WORK_DIR=osp.dirname(__file__)
 SAVE_DIR=osp.join(WORK_DIR, "chosen_triang_pnts")
@@ -13,14 +15,26 @@ data_idxs = {"sofa_soccer_dragon": (1605, 1766)}
 
 def select_triag_pnts():
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
+
+    output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
+
     manager = ColSceneManager(colmap_dir)
 
     idx1, idx2 = 1605, 1766
 
-    selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir))))
+    selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
     selector.select_points()
     selector.save_ref_img()
 
+    extr1, extr2 = manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)
+    intrx, dist = manager.get_intrnxs()
+    img_id1, img_id2 = manager.get_img_id(idx1), manager.get_img_id(idx2)
+
+    np.save(osp.join(output_dir, f'{img_id1}_extrxs.npy'), extr1)
+    np.save(osp.join(output_dir, f'{img_id2}_extrxs.npy'), extr2)
+    
+    with open(osp.join(output_dir, "intrxs.json"), "w") as f:
+        json.dump({"intrinsics": intrx.tolist(), "dist": dist.tolist()}, f, indent=4)
 
 def find_correspondance(ori_pnts, selected_pnts):
     dists = np.sqrt(((ori_pnts[:, None] - selected_pnts[None])**2).sum(axis=-1))
@@ -78,5 +92,5 @@ def select_3d_coords():
 
 
 if __name__ == "__main__":
-    # select_triag_pnts()
-    select_3d_coords()
+    select_triag_pnts()
+    # select_3d_coords()
