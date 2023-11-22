@@ -4,7 +4,7 @@ import os
 import os.path as osp
 
 class ImagePointSelector:
-    def __init__(self, image_paths, show_point_indices=False, save=True, save_dir = "img_pnt_dir"):
+    def __init__(self, image_paths, show_point_indices=False, save=True, save_dir = None):
         self.image_paths = image_paths
         self.images = [cv2.imread(path) for path in image_paths]
         self.copies = [img.copy() for img in self.images]
@@ -13,7 +13,7 @@ class ImagePointSelector:
         self.last_image_clicked = 0  # Index of the last image clicked
         self.prepare_images()
         self.save = save
-        self.save_dir = save_dir
+        self.save_dir = save_dir if save_dir is not None else  osp.join(osp.dirname(osp.realpath(__file__)), "img_pnts")
 
         os.makedirs(self.save_dir, exist_ok=True)
 
