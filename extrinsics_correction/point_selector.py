@@ -88,7 +88,8 @@ class ImagePointSelector:
             save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + ".npy")
             np.save(save_f, img_pnt)
 
-
+    def save_ref_img(self):
+        cv2.imwrite(osp.join(self.save_dir, "ref_img.png"), self.composite_image)
 
 if __name__ == "__main__":
     ##### test
