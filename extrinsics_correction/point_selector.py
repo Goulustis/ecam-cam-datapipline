@@ -2,77 +2,58 @@ import cv2
 import numpy as np
 
 class ImagePointSelector:
-    def __init__(self, image_path1, image_path2, show_point_indices=False):
-        self.image_path1, self.image_path2 = image_path1, image_path2
-        self.original_image1 = cv2.imread(image_path1)
-        self.original_image2 = cv2.imread(image_path2)
-        self.image1 = self.original_image1.copy()
-        self.image2 = self.original_image2.copy()
-        self.points1 = []
-        self.points2 = []
+    def __init__(self, image_paths, show_point_indices=False):
+        self.image_paths = image_paths
+        self.images = [cv2.imread(path) for path in image_paths]
+        self.copies = [img.copy() for img in self.images]
+        self.points = [[] for _ in image_paths]
         self.show_point_indices = show_point_indices
-        self.last_image_clicked = 1  # 1 for image1, 2 for image2
+        self.last_image_clicked = 0  # Index of the last image clicked
         self.prepare_images()
 
-    def pad_image_to_same_height(self, img1, img2):
-        h1, w1 = img1.shape[:2]
-        h2, w2 = img2.shape[:2]
-
-        if h1 > h2:
-            diff = h1 - h2
-            img2 = cv2.copyMakeBorder(img2, diff // 2, diff - diff // 2, 0, 0, cv2.BORDER_CONSTANT)
-        elif h2 > h1:
-            diff = h2 - h1
-            img1 = cv2.copyMakeBorder(img1, diff // 2, diff - diff // 2, 0, 0, cv2.BORDER_CONSTANT)
-        
-        return img1, img2
+    def pad_images_to_same_height(self):
+        max_height = max(img.shape[0] for img in self.images)
+        self.top_paddings = []
+        for i, img in enumerate(self.images):
+            diff = max_height - img.shape[0]
+            self.images[i] = cv2.copyMakeBorder(img, diff // 2, diff - diff // 2, 0, 0, cv2.BORDER_CONSTANT)
+            self.top_paddings.append(diff // 2)
 
     def prepare_images(self):
-        self.image1, self.image2 = self.pad_image_to_same_height(self.image1, self.image2)
-        self.composite_image = np.hstack((self.image1, self.image2))
+        self.pad_images_to_same_height()
+        self.composite_image = np.hstack(self.images)
         self.original_composite_image = self.composite_image.copy()
-        self.half_width = self.composite_image.shape[1] // 2
-        self.top_padding1 = (self.image1.shape[0] - self.original_image1.shape[0]) // 2
-        self.top_padding2 = (self.image2.shape[0] - self.original_image2.shape[0]) // 2
+        self.widths = [img.shape[1] for img in self.images]
 
     def click_event(self, event, x, y, flags, params):
-        # Calculate scale factors
-        scale_x = self.original_composite_image.shape[1] / self.composite_image.shape[1]
-        scale_y = self.original_composite_image.shape[0] / self.composite_image.shape[0]
-        scaled_x, scaled_y = int(x * scale_x), int(y * scale_y)
-
         if event == cv2.EVENT_LBUTTONDOWN:
-            if scaled_x < self.original_composite_image.shape[1] // 2:
-                self.points1.append((scaled_x, scaled_y - self.top_padding1))
-                self.last_image_clicked = 1
-                print(f"Point added to Image 1: ({scaled_x}, {scaled_y - self.top_padding1})")
-            else:
-                self.points2.append((scaled_x - self.half_width, scaled_y - self.top_padding2))
-                self.last_image_clicked = 2
-                print(f"Point added to Image 2: ({scaled_x - self.half_width}, {scaled_y - self.top_padding2})")
+            scaled_x, scaled_y = x, y
+            total_width = 0
+            for idx, width in enumerate(self.widths):
+                if scaled_x < total_width + width:
+                    self.points[idx].append((scaled_x - total_width, scaled_y - self.top_paddings[idx]))
+                    self.last_image_clicked = idx
+                    print(f"Point added to Image {idx + 1}: ({scaled_x - total_width}, {scaled_y - self.top_paddings[idx]})")
+                    break
+                total_width += width
             self.draw_points()
 
     def remove_last_point(self):
-        if self.last_image_clicked == 1 and self.points1:
-            self.points1.pop()
-            print("Last point removed from Image 1")
-        elif self.last_image_clicked == 2 and self.points2:
-            self.points2.pop()
-            print("Last point removed from Image 2")
-        self.draw_points()
+        if self.points[self.last_image_clicked]:
+            self.points[self.last_image_clicked].pop()
+            print(f"Last point removed from Image {self.last_image_clicked + 1}")
+            self.draw_points()
 
     def draw_points(self):
         self.composite_image = self.original_composite_image.copy()
-        for idx, point in enumerate(self.points1):
-            cv2.circle(self.composite_image, (point[0], point[1] + self.top_padding1), 5, (0, 0, 255), -1)
-            if self.show_point_indices:
-                cv2.putText(self.composite_image, str(idx), (point[0] + 10, point[1] + self.top_padding1 + 10), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-        for idx, point in enumerate(self.points2):
-            cv2.circle(self.composite_image, (point[0] + self.half_width, point[1] + self.top_padding2), 5, (0, 255, 0), -1)
-            if self.show_point_indices:
-                cv2.putText(self.composite_image, str(idx), (point[0] + self.half_width + 10, point[1] + self.top_padding2 + 10), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+        total_width = 0
+        for idx, points in enumerate(self.points):
+            for pidx, point in enumerate(points):
+                cv2.circle(self.composite_image, (point[0] + total_width, point[1] + self.top_paddings[idx]), 5, (0, 255, 0), -1)
+                if self.show_point_indices:
+                    cv2.putText(self.composite_image, str(pidx), (point[0] + total_width + 10, point[1] + self.top_paddings[idx] + 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            total_width += self.widths[idx]
         cv2.imshow('Composite Image', self.composite_image)
 
     def select_points(self):
@@ -89,7 +70,8 @@ class ImagePointSelector:
                 self.remove_last_point()
 
         cv2.destroyAllWindows()
-        return self.points1, self.points2
+        return self.points
+
 
 
 if __name__ == "__main__":
@@ -98,7 +80,7 @@ if __name__ == "__main__":
     img_f1 = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/halloween_b2_v1_recon/images/00000.png"
     img_f2 = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/trig_eimgs/0000.png"
 
-    selector = ImagePointSelector(img_f1, img_f2, show_point_indices=True)
+    selector = ImagePointSelector([img_f1, img_f2], show_point_indices=True)
     points_image1, points_image2 = selector.select_points()
 
     print("Points on Image 1:", points_image1)
