@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
+import os
+import os.path as osp
 
 class ImagePointSelector:
-    def __init__(self, image_paths, show_point_indices=False):
+    def __init__(self, image_paths, show_point_indices=False, save=True, save_dir = "img_pnt_dir"):
         self.image_paths = image_paths
         self.images = [cv2.imread(path) for path in image_paths]
         self.copies = [img.copy() for img in self.images]
@@ -10,6 +12,11 @@ class ImagePointSelector:
         self.show_point_indices = show_point_indices
         self.last_image_clicked = 0  # Index of the last image clicked
         self.prepare_images()
+        self.save = save
+        self.save_dir = save_dir
+
+        os.makedirs(self.save_dir, exist_ok=True)
+
 
     def pad_images_to_same_height(self):
         max_height = max(img.shape[0] for img in self.images)
@@ -70,7 +77,16 @@ class ImagePointSelector:
                 self.remove_last_point()
 
         cv2.destroyAllWindows()
+
+        if self.save:
+            self.save_all_points()
+
         return self.points
+
+    def save_all_points(self):
+        for img_f, img_pnt in zip(self.image_paths, self.points):
+            save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + ".npy")
+            np.save(save_f, img_pnt)
 
 
 
@@ -79,8 +95,9 @@ if __name__ == "__main__":
     # Example usage
     img_f1 = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/halloween_b2_v1_recon/images/00000.png"
     img_f2 = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/trig_eimgs/0000.png"
+    save_dir = osp.join(osp.dirname(osp.realpath(__file__)), "dev_img_pnts")
 
-    selector = ImagePointSelector([img_f1, img_f2], show_point_indices=True)
+    selector = ImagePointSelector([img_f1, img_f2], show_point_indices=True, save_dir=save_dir)
     points_image1, points_image2 = selector.select_points()
 
     print("Points on Image 1:", points_image1)
