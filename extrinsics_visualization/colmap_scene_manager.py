@@ -229,8 +229,8 @@ class ColSceneManager:
         self.chosen_points = {"idxs": chosen_pnt_idxs,
                               "xyzs": self.get_points_xyzs(chosen_pnt_idxs)}
         
-        ## colmap idx is 1 index, img_fs is 0 indexed
-        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(self.img_fs[img_idx - 1]),  \
+        ## colmap idx is 1 index, img_fs is 0 indexed:: self.img_fs[img_idx - 1])
+        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(osp.join(self.img_dir, self.images[img_idx].name)),  \
                                                  self.camera.intrxs, \
                                                  self.img_to_extrnxs(img_idx), \
                                                  self.chosen_points["idxs"], \
