@@ -202,7 +202,7 @@ class ColSceneManager:
         return self.chosen_points["idxs"]
 
 
-    def img_to_extrnxs(self, img_idx=None, img_obj=None):
+    def get_extrnxs(self, img_idx=None, img_obj=None):
         if img_idx is not None:
             img_obj = self.images[img_idx]
         
@@ -213,6 +213,9 @@ class ColSceneManager:
         dummy[0,-1] = 1
         mtx = np.concatenate([mtx, dummy], axis=0)
         return mtx
+
+    def get_intrnxs(self):
+        return self.camera.intrxs, self.camera.get_dist_coeffs()
 
 
     def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
@@ -232,7 +235,7 @@ class ColSceneManager:
         ## colmap idx is 1 index, img_fs is 0 indexed:: self.img_fs[img_idx - 1])
         img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(osp.join(self.img_dir, self.images[img_idx].name)),  \
                                                  self.camera.intrxs, \
-                                                 self.img_to_extrnxs(img_idx), \
+                                                 self.get_extrnxs(img_idx), \
                                                  self.chosen_points["idxs"], \
                                                  self.chosen_points["xyzs"] 
 
