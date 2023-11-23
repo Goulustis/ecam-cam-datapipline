@@ -9,7 +9,7 @@ import numpy as np
 
 
 
-def proj_3d_pnts(img, intrinsics, extrinsics, pnt_idxs, pnts_3d, dist_coeffs=None):
+def proj_3d_pnts(img, intrinsics, extrinsics, pnts_3d, pnt_idxs=None, dist_coeffs=None):
     """
     Project a list of 3D points onto an image and label them with their indices.
     
@@ -40,7 +40,8 @@ def proj_3d_pnts(img, intrinsics, extrinsics, pnt_idxs, pnts_3d, dist_coeffs=Non
         try:
             point = tuple(p[0].astype(int))
             cv2.circle(img_with_pnts, point, 5, (0, 255, 0), -1)
-            cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            if pnt_idxs is not None:
+                cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         except Exception as e:
             print("ERROR:", e)
             
@@ -249,7 +250,7 @@ class ColSceneManager:
                                                  self.chosen_points["idxs"], \
                                                  self.chosen_points["xyzs"] 
 
-        img_3d = proj_3d_pnts(np.copy(img), intrxs, extrxs, pnt_idxs, pnts_3d)[1]
+        img_3d = proj_3d_pnts(np.copy(img), intrxs, extrxs, pnts_3d, pnt_idxs)[1]
 
         #### debug ####
         # if self.pnts_2d is None:
@@ -286,6 +287,10 @@ class ColSceneManager:
         
         return points
 
+
+    def get_img_id(self, img_idx):
+        img_f = self.get_img_f(img_idx)
+        return osp.basename(img_f).split(".")[0]
 
 
 if __name__ == "__main__":
