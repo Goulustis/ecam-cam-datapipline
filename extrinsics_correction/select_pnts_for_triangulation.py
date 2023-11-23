@@ -21,9 +21,9 @@ def select_triag_pnts(colmap_dir = None, output_dir=None):
 
     idx1, idx2 = 1605, 1766
 
-    # selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=False, save_dir=output_dir)
-    # selector.select_points()
-    # selector.save_ref_img()
+    selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=False, save_dir=output_dir)
+    selector.select_points()
+    selector.save_ref_img()
 
     extr1, extr2 = manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)
     intrx, dist = manager.get_intrnxs()
@@ -62,8 +62,7 @@ def gen_point_img(pnts, radius=5):
     return img, pnts
 
 
-def select_3d_coords():
-    save_dir = "img_pnts/sofa_soccer_dragon"
+def select_3d_coords(out_dir):
 
     # Initialize 3D points
     objp = np.zeros((5*8, 3), np.float32)
@@ -89,7 +88,7 @@ def select_3d_coords():
 
     chosen_pnts = objp[corr_idxs]
 
-    np.save(osp.join(save_dir, "corr_3d_pnts.pny"), chosen_pnts)
+    np.save(osp.join(out_dir, "corres_3d.pny"), chosen_pnts)
 
 def load_output_dir(path):
     pnts_fs = sorted(glob.glob(osp.join(path, "*_pnts.npy")))
@@ -199,6 +198,6 @@ if __name__ == "__main__":
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
     # select_triag_pnts(colmap_dir, output_dir)
-    triangulate_points(**load_output_dir(output_dir))
-    # select_3d_coords()
+    # triangulate_points(**load_output_dir(output_dir))
+    select_3d_coords(output_dir)
 
