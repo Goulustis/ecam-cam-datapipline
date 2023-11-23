@@ -59,7 +59,7 @@ def main(colmap_dir, ev_recon_img_dir, ecam_f, rel_cam_f):
         ev_img, ev_intrxs, ev_extrxs, ev_dist_coeffs = ev_manager.get_data(i)
         
         rgb_prj_img = colmap_manager.view_img_points(i+1,chosen_pnt_idxs=pnts_idxs)
-        ev_prj_img = proj_3d_pnts(ev_img, ev_intrxs, ev_extrxs, pnts_idxs, pnts_3d, ev_dist_coeffs)[1]
+        ev_prj_img = proj_3d_pnts(ev_img, ev_intrxs, ev_extrxs, pnts_3d, pnts_idxs, ev_dist_coeffs)[1]
         comb_img = concat_imgs(rgb_prj_img, ev_prj_img)
         vid_frames.append(comb_img)
     
