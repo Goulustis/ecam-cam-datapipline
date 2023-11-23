@@ -14,7 +14,6 @@ SAVE_DIR=osp.join(WORK_DIR, "chosen_triang_pnts")
 data_idxs = {"sofa_soccer_dragon": (1605, 1766)}
 
 def select_triag_pnts(colmap_dir = None, output_dir=None):
-    colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir))) if output_dir is None else output_dir
 
     manager = ColSceneManager(colmap_dir)
@@ -37,8 +36,6 @@ def select_triag_pnts(colmap_dir = None, output_dir=None):
         f.write(manager.get_img_f(idx1) + "\n")
         f.write(manager.get_img_f(idx2) + "\n")
 
-    # with open(osp.join(output_dir, "intrxs.json"), "w") as f:
-    #     json.dump({"intrinsics": intrx.tolist(), "dist": dist.tolist()}, f, indent=4)
 
 def find_correspondance(ori_pnts, selected_pnts):
     dists = np.sqrt(((ori_pnts[:, None] - selected_pnts[None])**2).sum(axis=-1))
@@ -243,8 +240,8 @@ def find_scale(out_dir):
 if __name__ == "__main__":
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-    # select_triag_pnts(colmap_dir, output_dir)
-    # triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    # select_3d_coords(output_dir)
+    select_triag_pnts(colmap_dir, output_dir)
+    triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
+    select_3d_coords(output_dir)
     find_scale(output_dir)
 
