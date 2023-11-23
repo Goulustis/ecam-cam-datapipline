@@ -51,7 +51,7 @@ class ImagePointSelector:
             print(f"Last point removed from Image {self.last_image_clicked + 1}")
             self.draw_points()
 
-    def draw_points(self):
+    def draw_points(self, show_img = True):
         self.composite_image = self.original_composite_image.copy()
         total_width = 0
         for idx, points in enumerate(self.points):
@@ -61,7 +61,9 @@ class ImagePointSelector:
                     cv2.putText(self.composite_image, str(pidx), (point[0] + total_width + 10, point[1] + self.top_paddings[idx] + 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
             total_width += self.widths[idx]
-        cv2.imshow('Composite Image', self.composite_image)
+        
+        if show_img:
+            cv2.imshow('Composite Image', self.composite_image)
 
     def select_points(self):
         cv2.namedWindow('Composite Image', cv2.WINDOW_NORMAL)
@@ -85,7 +87,7 @@ class ImagePointSelector:
 
     def save_all_points(self):
         for img_f, img_pnt in zip(self.image_paths, self.points):
-            save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + ".npy")
+            save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + "_pnts.npy")
             np.save(save_f, img_pnt)
 
     def save_ref_img(self):
