@@ -1,13 +1,13 @@
-import json
 import os.path as osp
 import glob
 import matplotlib.pyplot as plt
-from utils.images import calc_clearness_score
 import numpy as np
 import cv2
+from scipy.linalg import svd
 
 from extrinsics_correction.point_selector import ImagePointSelector
 from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts
+from utils.images import calc_clearness_score
 
 WORK_DIR=osp.dirname(__file__)
 SAVE_DIR=osp.join(WORK_DIR, "chosen_triang_pnts")
@@ -46,6 +46,7 @@ def find_correspondance(ori_pnts, selected_pnts):
     return idxs
 
 def gen_point_img(pnts, radius=5):
+    #NOTE: THESE ARE INNER CORNORS
     pnts = pnts / np.linalg.norm(pnts[1] - pnts[0])
     pix_gap = 64
     pnts = pnts * pix_gap
@@ -167,7 +168,7 @@ def calculate_reprojection_error(points_3d, points2d_1, points2d_2, intrinsics1,
     return total_mean_error
 
 
-def triangulate_points(pnts, extr, intr):
+def triangulate_points(pnts, extr, intr, output_dir = None):
     pnts1, pnts2 = pnts
     extrx1, extrx2 = extr
     intrinsics, dist = intr["intrinsics"], intr["dist"]
@@ -180,17 +181,62 @@ def triangulate_points(pnts, extr, intr):
     # prj_img1 = proj_3d_pnts(img1, intrinsics, extrx1, pnts_3d, dist_coeffs=dist)[-1]
     # prj_img2 = proj_3d_pnts(img2, intrinsics, extrx2, pnts_3d, dist_coeffs=dist)[-1]
     # assert 0
+    if output_dir is not None:
+        np.save(osp.join(output_dir, "triangulated.npy"), pnts_3d.squeeze())
+
     return pnts_3d
 
 
 
-# def main():
-#     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
-#     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-#     select_triag_pnts(colmap_dir, output_dir)
-#     triangulate_points(*load_output_dir(output_dir))
+
+def find_rigid_transform(A, B):
+    """
+    Find the scale, rotation, and translation to map points in A to points in B.
     
+    :param A: Nx3 numpy array of 3D points.
+    :param B: Nx3 numpy array of 3D points.
+    :return: scale, rotation matrix, translation vector
+    """
+    assert A.shape == B.shape, "The point sets must have the same shape."
+
+    # Center the points (translation)
+    centroid_A = np.mean(A, axis=0)
+    centroid_B = np.mean(B, axis=0)
+    A_centered = A - centroid_A
+    B_centered = B - centroid_B
+
+    # Compute scale
+    scale = np.sqrt(np.sum(B_centered**2) / np.sum(A_centered**2))
+
+    # Scale A
+    A_scaled = A_centered * scale
+
+    # Compute rotation
+    H = A_scaled.T @ B_centered
+    U, _, Vt = svd(H)
+    rotation = Vt.T @ U.T
+
+    # Ensure a right-handed coordinate system
+    if np.linalg.det(rotation) < 0:
+        Vt[-1, :] *= -1
+        rotation = Vt.T @ U.T
+
+    # Compute final translation
+    translation = centroid_B - scale * (rotation @ centroid_A)
+
+    return scale, rotation, translation
+
+
+def find_scale(out_dir):
+    triang_f = osp.join(out_dir, "triangulated.npy")
+    corres_f = osp.join(out_dir, "corres_3d.npy")
+    triang, corres = np.load(triang_f), np.load(corres_f)
+    s, R, t = find_rigid_transform(corres, triang)
     
+    error = np.sqrt((s*(corres@R.T) + t - triang)**2).mean()
+    print(error)
+    print(s)
+    return s
 
 
 
@@ -198,6 +244,7 @@ if __name__ == "__main__":
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
     # select_triag_pnts(colmap_dir, output_dir)
-    # triangulate_points(**load_output_dir(output_dir))
-    select_3d_coords(output_dir)
+    # triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
+    # select_3d_coords(output_dir)
+    find_scale(output_dir)
 
