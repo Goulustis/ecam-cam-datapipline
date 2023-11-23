@@ -8,27 +8,35 @@ import cv2
 from tqdm import tqdm
 import os.path as osp
 from concurrent import futures
+from concurrent.futures import ThreadPoolExecutor
+import concurrent
 
 import argparse
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--eimg_f")
-parser.add_argument("--sparse_txt_dir")
-parser.add_argument("--dense_dir")
-parser.add_argument("--save_dir")
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--eimg_f")
+# parser.add_argument("--sparse_txt_dir")
+# parser.add_argument("--dense_dir")
+# parser.add_argument("--save_dir")
 
-args = parser.parse_args()
+# args = parser.parse_args()
 
-# ev_img_f = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/halloween_b2_v1/ecam_set/eimgs/eimgs_1x.npy"
-# sparse_txt_dir = "/scratch-ssd/dense_workdir/halloween_b2_v1_recons/dense/txt_sparse"
-# dense_dir = "/scratch-ssd/dense_workdir/halloween_b2_v1_recons/dense"
-# save_dir = "vid_frames"
+# ev_img_f = args.ev_img_f
+# sparse_txt_dir = args.sparse_txt_dir
+# dense_dir = args.dense_dir
+# save_dir = args.save_dir
 
-ev_img_f = args.ev_img_f
-sparse_txt_dir = args.sparse_txt_dir
-dense_dir = args.dense_dir
-save_dir = args.save_dir
+#ev_img_f = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/halloween_b2_v1/ecam_set/eimgs/eimgs_1x.npy"
+#sparse_txt_dir = "/scratch-ssd/dense_workdir/halloween_b2_v1_recons/dense/txt_sparse"
+#dense_dir = "/scratch-ssd/dense_workdir/halloween_b2_v1_recons/dense"
+#save_dir = "vid_frames"
+
+ev_img_f = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/calib_checker/ecam_set/eimgs/eimgs_1x.npy"
+sparse_txt_dir = "/scratch-ssd/dense_workdir/calib_checker_recons/dense/txt_sparse"
+dense_dir = "/scratch-ssd/dense_workdir/calib_checker/dense"
+save_dir = "calib_checker_vid_frames"
+
 
 eimgs = np.load(ev_img_f, "r")
 
@@ -160,9 +168,6 @@ translation_q = translations[q]
 translation_n = translations[n]
 
 
-# In[24]:
-
-
 def unproject_points(screen_space_points, depths, focal, principal):
     points = np.copy(screen_space_points)
     points[..., 0] = (points[..., 0] - principal[0, 0]) / focal[0, 0]
@@ -176,8 +181,6 @@ def project_points(points, focal, principal):
     screen_space_points[..., 1] = screen_space_points[..., 1] / screen_space_points[..., 2] * focal[0, 1] + principal[0, 1]
     return screen_space_points[..., :2]
 
-
-# In[25]:
 
 
 point_inds_q = np.argwhere(depth_q >= 1e-1)
@@ -227,26 +230,67 @@ plt.imshow(scatter_im * 0.5 + rgb_q * 0.5)
 plt.figure(figsize=(15,15))
 plt.imshow(scatter_im)
 
-eimg_inds = np.arange(0, 960)
+# eimg_inds = np.arange(0, 960)
+eimg_inds = np.arange(0, len(eimgs))
 
-eimg_rotations = []
-eimg_translations = []
-eimg_focals = []
-eimg_principals = []
-eimg_radial_distortions = []
-eimg_tangential_distortions = []
+##################################################
+# eimg_rotations = []
+# eimg_translations = []
+# eimg_focals = []
+# eimg_principals = []
+# eimg_radial_distortions = []
+# eimg_tangential_distortions = []
 
-for i in tqdm(eimg_inds, desc="loading eimg cams"):
-    with open(osp.join(osp.dirname(osp.dirname(ev_img_f)), f"camera/{i:06d}.json")) as fd:
-        camera = json.load(fd)
+# for i in tqdm(eimg_inds, desc="loading eimg cams"):
+#     with open(osp.join(osp.dirname(osp.dirname(ev_img_f)), f"camera/{i:06d}.json")) as fd:
+#         camera = json.load(fd)
     
-    eimg_rotations.append(np.array(camera["orientation"]))
-    eimg_translations.append(np.array(camera["position"]))
-    eimg_focals.append(np.array(camera["focal_length"]))
-    eimg_principals.append(np.array(camera["principal_point"]))
-    eimg_radial_distortions.append(np.array(camera["radial_distortion"]))
-    eimg_tangential_distortions.append(np.array(camera["tangential_distortion"]))
+#     eimg_rotations.append(np.array(camera["orientation"]))
+#     eimg_translations.append(np.array(camera["position"]))
+#     eimg_focals.append(np.array(camera["focal_length"]))
+#     eimg_principals.append(np.array(camera["principal_point"]))
+#     eimg_radial_distortions.append(np.array(camera["radial_distortion"]))
+#     eimg_tangential_distortions.append(np.array(camera["tangential_distortion"]))
 
+# eimg_rotations = np.stack(eimg_rotations, axis=0)
+# eimg_translations = np.stack(eimg_translations, axis=0)
+# eimg_focals = np.stack(eimg_focals, axis=0)
+# eimg_principals = np.stack(eimg_principals, axis=0)
+# eimg_radial_distortions = np.stack(eimg_radial_distortions, axis=0)
+# eimg_tangential_distortions = np.stack(eimg_tangential_distortions, axis=0)
+##################################################
+def load_camera_data(index):
+    with open(osp.join(osp.dirname(osp.dirname(ev_img_f)), f"camera/{index:06d}.json")) as fd:
+        camera = json.load(fd)
+
+    return {
+        "rotation": np.array(camera["orientation"]),
+        "translation": np.array(camera["position"]),
+        "focal_length": np.array(camera["focal_length"]),
+        "principal_point": np.array(camera["principal_point"]),
+        "radial_distortion": np.array(camera["radial_distortion"]),
+        "tangential_distortion": np.array(camera["tangential_distortion"])
+    }
+
+# Initialize lists to hold the data
+eimg_rotations, eimg_translations, eimg_focals, eimg_principals, eimg_radial_distortions, eimg_tangential_distortions = ([] for _ in range(6))
+
+# Use ThreadPoolExecutor to parallelize the file reading
+with ThreadPoolExecutor() as executor:
+    # Prepare a list of futures
+    tasks = [executor.submit(load_camera_data, i) for i in eimg_inds]
+
+    # Iterate over the futures as they complete
+    for future in tqdm(concurrent.futures.as_completed(tasks), desc="Processing", total=len(tasks)):
+        data = future.result()
+        eimg_rotations.append(data["rotation"])
+        eimg_translations.append(data["translation"])
+        eimg_focals.append(data["focal_length"])
+        eimg_principals.append(data["principal_point"])
+        eimg_radial_distortions.append(data["radial_distortion"])
+        eimg_tangential_distortions.append(data["tangential_distortion"])
+
+# Stack the data
 eimg_rotations = np.stack(eimg_rotations, axis=0)
 eimg_translations = np.stack(eimg_translations, axis=0)
 eimg_focals = np.stack(eimg_focals, axis=0)
@@ -275,7 +319,6 @@ def parallel_map(f, iterable, max_threads=None, show_pbar=False, desc="", **kwar
       results = executor.map(f, iterable, **kwargs)
     return list(results)
 
-inp_idxs = zip(range(len(eimg_inds)), eimg_inds)
 
 def projection_image(inp):
     i, index = inp
@@ -314,6 +357,7 @@ def projection_image(inp):
     plt.imsave(f"{save_dir}/{str(i).zfill(4)}.png", scatter_im * 0.5 + rgb_q * 0.5)
 
 
+inp_idxs = list(zip(range(len(eimg_inds)), eimg_inds))
 parallel_map(projection_image, inp_idxs, show_pbar=True, desc="final imgs")
 
 
