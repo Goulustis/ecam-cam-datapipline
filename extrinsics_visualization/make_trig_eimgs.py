@@ -68,7 +68,7 @@ if __name__ == "__main__":
         os.makedirs(eimgs_dir, exist_ok=True)
         os.makedirs(trig_ecam_set_dir, exist_ok=True)
 
-        # np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
+        np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
 
         manager = ColSceneManager(glob.glob(osp.join(args.workdir, "*recon*"))[0])
         colcam_extrinsics = [manager.get_extrnxs(idx) for idx in sorted(list(manager.images.keys()))]
