@@ -4,7 +4,7 @@ import os
 import os.path as osp
 
 class ImagePointSelector:
-    def __init__(self, image_paths, show_point_indices=True, save=True, save_dir = None):
+    def __init__(self, image_paths, show_point_indices=True, save=True, save_dir = None, save_fs = None):
         self.image_paths = image_paths
         self.images = [cv2.imread(path) for path in image_paths]
         self.copies = [img.copy() for img in self.images]
@@ -14,6 +14,7 @@ class ImagePointSelector:
         self.prepare_images()
         self.save = save
         self.save_dir = save_dir if save_dir is not None else  osp.join(osp.dirname(osp.realpath(__file__)), "img_pnts")
+        self.save_fs = save_fs
 
         os.makedirs(self.save_dir, exist_ok=True)
 
@@ -83,11 +84,14 @@ class ImagePointSelector:
         if self.save:
             self.save_all_points()
 
-        return self.points
+        return np.array(self.points)
 
     def save_all_points(self):
-        for img_f, img_pnt in zip(self.image_paths, self.points):
-            save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + "_pnts.npy")
+        for i, (img_f, img_pnt) in enumerate(zip(self.image_paths, self.points)):
+            if self.save_fs is not None:
+                save_f = self.save_fs[i]
+            else:
+                save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + "_pnts.npy")
             np.save(save_f, img_pnt)
 
     def save_ref_img(self):
