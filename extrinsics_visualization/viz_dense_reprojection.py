@@ -32,10 +32,14 @@ import argparse
 #dense_dir = "/scratch-ssd/dense_workdir/halloween_b2_v1_recons/dense"
 #save_dir = "vid_frames"
 
-ev_img_f = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/calib_checker/ecam_set/eimgs/eimgs_1x.npy"
-sparse_txt_dir = "/scratch-ssd/dense_workdir/calib_checker_recons/dense/txt_sparse"
-dense_dir = "/scratch-ssd/dense_workdir/calib_checker/dense"
-save_dir = "calib_checker_vid_frames"
+scene = "sofa_soccer_dragon"
+# ev_img_f = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set/eimgs/eimgs_1x.npy"
+ev_img_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/trig_ecamset/eimgs/eimgs_1x.npy"
+sparse_txt_dir = f"/scratch-ssd/dense_workdir/{scene}_recons/dense/txt_sparse"
+dense_dir = f"/scratch-ssd/dense_workdir/{scene}_recons/dense"
+# save_dir = f"{scene}_vid_frames"
+save_dir = f"trig_{scene}_vid_frames"
+
 
 
 eimgs = np.load(ev_img_f, "r")
@@ -230,8 +234,8 @@ plt.imshow(scatter_im * 0.5 + rgb_q * 0.5)
 plt.figure(figsize=(15,15))
 plt.imshow(scatter_im)
 
-# eimg_inds = np.arange(0, 960)
-eimg_inds = np.arange(0, len(eimgs))
+eimg_inds = np.arange(0, min(3000, len(eimgs)))
+# eimg_inds = np.arange(0, len(eimgs))
 
 ##################################################
 # eimg_rotations = []
@@ -355,6 +359,8 @@ def projection_image(inp):
     scatter_im[inds[..., 1], inds[..., 0]] = points_rgb[mask]
 
     plt.imsave(f"{save_dir}/{str(i).zfill(4)}.png", scatter_im * 0.5 + rgb_q * 0.5)
+    # rgb_q[scatter_im != 0] = 1
+    # plt.imsave(f"{save_dir}/{str(i).zfill(4)}.png", rgb_q)
 
 
 inp_idxs = list(zip(range(len(eimg_inds)), eimg_inds))
