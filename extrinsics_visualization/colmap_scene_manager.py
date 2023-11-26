@@ -187,7 +187,8 @@ class ColSceneManager:
         # return np.random.choice(ids[sorted_idxs[:len(ids)//2]], size=sample_n_points)
         return np.random.choice(ids[sorted_idxs[:len(ids)//4]], size=sample_n_points)
 
-
+    def __len__(self):
+        return len(self.images)
 
     def sample_points_rnd(self, img_idx, sample_n_points=16):
         pnt_idxs = self.images[img_idx].point3D_ids
@@ -204,6 +205,9 @@ class ColSceneManager:
 
 
     def get_extrnxs(self, img_idx=None, img_obj=None):
+        """
+        img_idx: colmap index
+        """
         if img_idx is not None:
             img_obj = self.images[img_idx]
         
@@ -227,6 +231,7 @@ class ColSceneManager:
 
 
     def get_img_f(self, img_idx):
+        assert img_idx != 0, "colmap index starts from 1"
         return osp.join(self.img_dir, self.images[img_idx].name)
 
     def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
