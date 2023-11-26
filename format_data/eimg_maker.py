@@ -135,8 +135,8 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
                     eimgs.append(eimg)
 
                 eimgs_ids.append(id_cnt)
-                # eimgs_ts.append(st_t)
-                eimgs_ts.append(int((st_t + end_t)/2))
+                eimgs_ts.append(st_t)
+                # eimgs_ts.append(int((st_t + end_t)/2))
 
                 # update
                 st_t = end_t
