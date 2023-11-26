@@ -8,6 +8,7 @@ import os.path as osp
 from nerfies.camera import Camera
 import argparse
 import shutil
+import warnings
 
 from format_data.utils import read_triggers, read_ecam_intrinsics, read_events, EventBuffer
 from format_data.eimg_maker import create_event_imgs
@@ -109,6 +110,25 @@ def save_eimgs(eimgs, targ_dir):
     del eimgs
     
 
+def calc_t_shift(trig_path):
+    st_trig_f = osp.join(osp.dirname(trig_path), "st_triggers.txt")
+    end_trig_f = osp.join(osp.dirname(trig_path), "end_triggers.txt")
+    if osp.exists(st_trig_f):
+        st_trigs, end_trigs = np.loadtxt(st_trig_f), np.loadtxt(end_trig_f)
+        return (end_trigs[0] - st_trigs[0])/2
+    
+    warnings.warn("not shifting to mean exposure time stamp, events might drift")
+    return 0
+
+
+def calc_time_delta(triggers, min_mult=3):
+    delta_t = triggers[1] - triggers[0]
+    n_mult = np.round(delta_t/5000)
+    n_mult = max(min_mult, n_mult)
+
+    return int(delta_t/n_mult + 11)
+
+
 def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, create_eimgs):
     os.makedirs(targ_dir, exist_ok=True)
     event_path = osp.join(data_path, "processed_events.h5") 
@@ -120,14 +140,16 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, creat
     triggers = read_triggers(trig_path)
 
     ## create event images
-    # events = read_events(event_path, save_np=True, targ_dir=targ_dir)
     events = EventBuffer(event_path)
-    # events = None
-    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=(create_eimgs=="True"))
+    time_delta = calc_time_delta(triggers)
+    # eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=(create_eimgs=="True"), time_delta=5100)
+    eimgs, eimg_ts, eimgs_ids, trig_ids = create_event_imgs(events, triggers, create_imgs=(create_eimgs=="True"), time_delta=time_delta)
 
     save_eimgs(eimgs, targ_dir)
-    
-    ecams = create_interpolated_ecams(eimg_ts, triggers, trig_ecams)
+
+    t_shift = calc_t_shift(trig_path)
+    # ecams = create_interpolated_ecams(eimg_ts, triggers + 7490, trig_ecams)  ## debug check later
+    ecams = create_interpolated_ecams(eimg_ts, triggers + t_shift, trig_ecams)
 
     ## create nerfies.Camera and save extrinsics
     extrinsic_targ_dir = osp.join(targ_dir, "camera")
@@ -140,7 +162,7 @@ def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, creat
     np.save(osp.join(targ_dir, "trig_ids.npy"), trig_ids)
 
     # copy event to places
-    shutil.copyfile(event_path, osp.join(targ_dir, osp.basename(event_path)))
+    # shutil.copyfile(event_path, osp.join(targ_dir, osp.basename(event_path)))
 
     # create train valid split
     write_train_valid_split(eimgs_ids, targ_dir)
@@ -150,10 +172,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="make the event camera extrinsics dataset")
 
     # data_path is for getting the event h5 and the event camera extrinsics
-    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="data/rgb_checker")
-    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="data/rgb_checker/rel_cam.json")
-    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="data/mean_t_rgb_checker/ecam_set")
-    parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default="data/rgb_checker/triggers.txt")
+    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker")
+    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/rel_cam.json")
+    parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="debug")
+    parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/triggers.txt")
     parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
     args = parser.parse_args()
 
