@@ -1,12 +1,15 @@
 import os.path as osp
+import os
+import json
 import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from scipy.linalg import svd
+from tqdm import tqdm
 
 from extrinsics_correction.point_selector import ImagePointSelector
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts
+from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts, draw_2d_pnts
 from utils.images import calc_clearness_score
 
 WORK_DIR=osp.dirname(__file__)
@@ -236,12 +239,211 @@ def find_scale(out_dir):
     return s
 
 
+def pnp_extrns(objpnts, pnts_2d, intrxs, dist, ini_R=None, ini_tvec=None):
+    pnts_2d = pnts_2d.squeeze()
+
+    if ini_R is None:
+        success, rvec, tvec = cv2.solvePnP(objpnts, pnts_2d, intrxs, dist)
+    else:
+        initial_rvec, _ = cv2.Rodrigues(ini_R)
+        # success, rvec, tvec, inliers = cv2.solvePnPRansac(objpnts, pnts_2d, intrxs, dist, flags=cv2.SOLVEPNP_ITERATIVE, rvec=initial_rvec, tvec=ini_tvec)
+        success, rvec, tvec = cv2.solvePnP(
+                        objpnts, 
+                        pnts_2d, 
+                        intrxs, 
+                        dist, 
+                        rvec=initial_rvec, 
+                        tvec=ini_tvec, 
+                        useExtrinsicGuess=True, 
+                        flags=cv2.SOLVEPNP_ITERATIVE
+                    )
+    R, _ = cv2.Rodrigues(rvec)
+
+    assert success
+    return R, tvec
+
+
+
+def set_axes_equal(ax):
+    """
+    Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc.
+
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    """
+
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+
+
+def plot_3d_points(points):
+    """
+    Plot a list of 3D points using Matplotlib.
+
+    Args:
+        points (list of tuple): List of 3D points as (x, y, z) tuples.
+
+    Returns:
+        None
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Extract x, y, and z coordinates from the points
+    x_points, y_points, z_points = zip(*points)
+
+    # Plot the 3D points
+    ax.scatter(x_points, y_points, z_points, c='b', marker='o', label='3D Points')
+
+    # Set axis labels
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    set_axes_equal(ax)
+
+    # Set the title
+    plt.title('3D Point Cloud')
+
+    # Show the plot
+    plt.legend()
+    plt.show()
+
+def plot_3d_points_2set(points1, points2):
+    """
+    Plot two sets of 3D points using Matplotlib in different colors.
+
+    Args:
+        points1 (list of tuple): List of 3D points as (x, y, z) tuples for the first set.
+        points2 (list of tuple): List of 3D points as (x, y, z) tuples for the second set.
+
+    Returns:
+        None
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Extract x, y, and z coordinates from the points for each set
+    x_points1, y_points1, z_points1 = zip(*points1)
+    x_points2, y_points2, z_points2 = zip(*points2)
+
+    # Plot the first set of 3D points in blue
+    ax.scatter(x_points1, y_points1, z_points1, c='b', marker='o', label='Set 1')
+
+    # Plot the second set of 3D points in red
+    ax.scatter(x_points2, y_points2, z_points2, c='r', marker='^', label='Set 2')
+
+    # Set axis labels
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    set_axes_equal(ax)
+
+    # Set the title
+    plt.title('3D Point Cloud')
+
+    # Show the legend to differentiate the sets
+    plt.legend()
+    plt.show()
+
+
+def pnp_find_rel_cam(out_dir, work_dir):
+    triag_f = osp.join(out_dir, "triangulated.npy")
+    idx1, idx2 = (0, 40)
+
+    eimg_fs = sorted(glob.glob(osp.join(work_dir, "trig_eimgs", "*.png")))
+    rel_cam_f = osp.join(work_dir, "rel_cam.json")
+
+
+
+    objpnts = np.load(triag_f)
+    # idx1, idx2 = idx1 - 1, idx2 - 1
+    idx1, idx2 = idx1, idx2
+    eimg_f1, eimg_f2 = eimg_fs[idx1], eimg_fs[idx2]
+    with open(rel_cam_f, "r") as f:
+        data = json.load(f)
+        ecam_intrx, ecam_dist = np.array(data["M2"]), np.array(data["dist2"])
+        fr, ft = np.array(data["R"]), np.array(data["T"])
+    
+    make_chosen_f = lambda x : osp.join(out_dir, osp.basename(x).split(".")[0] + "_eimg.npy")
+    f1_chosen_f, f2_chosen_f = make_chosen_f(eimg_f1), make_chosen_f(eimg_f2)
+    
+    if osp.exists(f1_chosen_f):
+        pnts1, pnts2 = np.load(f1_chosen_f), np.load(f2_chosen_f)
+    else:
+        selector = ImagePointSelector([eimg_f1, eimg_f2], save_fs = [f1_chosen_f, f2_chosen_f])
+        pnts1, pnts2 = selector.select_points()
+    pnts1, pnts2 = pnts1.astype(np.float32), pnts2.astype(np.float32)
+    rgb_cam_fs = sorted(glob.glob(osp.join(out_dir, "*_extrxs.npy")))
+    Rs, Ts = [], []
+    ecam_Rs, ecam_Ts = [], []
+    manager = ColSceneManager(osp.join(work_dir, "sofa_soccer_dragon_recon"))
+    for i, (pnt, rgb_cam_f)  in enumerate(zip([pnts1, pnts2], rgb_cam_fs)):
+        rgb_cam = np.load(rgb_cam_f)
+        rgb_cam = manager.get_extrnxs([idx1, idx2][i] + 1)
+        rgb_R, rgb_t = rgb_cam[:3,:3], rgb_cam[:3,3:]
+        ecam_R, ecam_t = pnp_extrns(objpnts, pnt, ecam_intrx, ecam_dist, rgb_R, rgb_t)
+        
+        R_rel = ecam_R@rgb_R.T
+        T_rel = ecam_t - R_rel@rgb_t
+        Rs.append(R_rel), Ts.append(T_rel)
+        ecam_Rs.append(ecam_R), ecam_Ts.append(ecam_t)
+    
+    assert 0
+
+
+
+def proj_imgs(output_dir, colmap_dir):
+    workdir = osp.dirname(colmap_dir)
+
+    save_dir = osp.join(output_dir, "proj_ecams")
+    rel_cam_f = osp.join(workdir, "rel_cam.json")
+    eimg_fs = sorted(glob.glob(osp.join(workdir, "trig_eimgs", "*.png")))
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    with open(rel_cam_f, "r") as f:
+        data = json.load(f)
+        ecam_intrx, ecam_dist = np.array(data["M2"]), np.array(data["dist2"])
+        R, T = np.array(data["R"]), np.array(data["T"])
+    
+    objpnts = np.load(osp.join(output_dir, "triangulated.npy"))
+    manager = ColSceneManager(colmap_dir=colmap_dir)
+
+    center_idx = 1605
+    eimg = cv2.imread(eimg_fs[center_idx])
+    for idx in tqdm(range(center_idx - 100, center_idx + 100), desc="proj eimgs"):
+        rgb_cam = manager.get_extrnxs(idx)
+        rgb_R, rgb_t = rgb_cam[:3,:3], rgb_cam[:3,3:]
+        ecam_R, ecam_t = R@rgb_R, R@rgb_t + T*0.158
+        prj_pnts, proj_img = proj_3d_pnts(eimg,ecam_intrx, np.concatenate([ecam_R, ecam_t], axis=-1), objpnts, dist_coeffs=ecam_dist)
+        
+        cv2.imwrite(osp.join(save_dir, f"{str(idx - center_idx + 100).zfill(6)}.png"), proj_img)
 
 if __name__ == "__main__":
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-    select_triag_pnts(colmap_dir, output_dir)
-    triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    select_3d_coords(output_dir)
-    find_scale(output_dir)
+    # select_triag_pnts(colmap_dir, output_dir)
+    # triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
+    # select_3d_coords(output_dir)
+    # find_scale(output_dir)
+    pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
+    # proj_imgs(output_dir, colmap_dir)
 
