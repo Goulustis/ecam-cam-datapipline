@@ -139,7 +139,8 @@ def find_chessboard_corners(img):
 
 def validate_in_colmap_space():
     colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/calib_checker_recon"
-    eimg_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/events_imgs"
+    # eimg_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/events_imgs"
+    eimg_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/trig_eimgs"
     relcam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/rel_cam.json"
     save_dir = osp.join(TMP_DIR, "colmap_stereo_proj")
 
@@ -164,7 +165,6 @@ def validate_in_colmap_space():
     colmap_pnts = triangulate_points(pnts, [manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)], 
                                     {"intrinsics": rgb_K, "dist":rgb_D}, TMP_DIR)
 
-    ### TODO: scale the rel_cam -> project -> visualize
     grid_scale=0.39568848540866075/3
     colcams = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
     ecams = map_cam({"R":R, "T":T}, colcams, grid_scale)
@@ -185,6 +185,64 @@ def validate_in_colmap_space():
                  show_pbar=True, desc="saving projected")
     
 
+def load_json_cam(cam_f):
+    with open(cam_f, "r") as f:
+        data = json.load(f)
+        R, pos = np.array(data["orientation"]), np.array(data["position"])
+        t = -(pos@R.T).T
+        t = t.reshape(-1,1)
+    
+    return np.concatenate([R, t], axis=-1)
+
+
+def load_json_intr(cam_f):
+    with open(cam_f, "r") as f:
+        data = json.load(f)
+        fx = fy = data["focal_length"]
+        cx, cy = data["principal_point"]
+        k1, k2, k3 = data["radial_distortion"]
+        p1, p2 = data["tangential_distortion"]
+    
+    return np.array([[fx, 0, cx],
+                    [0,   fy, cy],
+                    [0, 0, 1]]), (k1,k2,p1,p2)
+
+
+
+def validate_ecamset():
+    pnts_3d_f = "/scratch/matthew/projects/ecam-cam-datapipline/tmp/triangulated.npy"
+    ecamset = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/calib_checker/ecam_set"
+    save_dir = osp.join(TMP_DIR, "ecamset_proj")
+
+    os.makedirs(save_dir, exist_ok=True)
+    objpnts = np.load(pnts_3d_f)
+    cam_fs = sorted(glob.glob(osp.join(ecamset, "camera", "*.json")))
+    eimgs = np.load(osp.join(ecamset, "eimgs", "eimgs_1x.npy"), "r")
+
+    ecam_K, ecam_D = load_json_intr(cam_fs[0])
+    ecams = parallel_map(load_json_cam, cam_fs, show_pbar=True, desc="loading json cams") #[load_json_cam(f) for f in cam_fs]
+
+    def proj_fn(inp):
+        img, extr = inp
+        return proj_3d_pnts(img, ecam_K, extr, objpnts, dist_coeffs=ecam_D)[1]
+
+
+    eimgs = parallel_map(lambda x : np.stack([(x != 0).astype(np.uint8) * 255]*3, axis=-1), eimgs, show_pbar=True, desc="creating eimgs")
+    proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)), show_pbar=True, desc="projecting points")
+
+    
+    def save_fn(inp):
+        img, idx = inp
+        cv2.imwrite(osp.join(save_dir, f"{str(idx).zfill(6)}.png"), img)
+    
+    parallel_map(save_fn, list(zip(proj_eimgs, list(range(len(eimgs))))), 
+                 show_pbar=True, desc="saving projected")
+
+
+
+
+
 if __name__ == "__main__":
-    validate_in_stereo_space()
-    validate_in_colmap_space()
+    # validate_in_stereo_space()
+    # validate_in_colmap_space()
+    validate_ecamset()
