@@ -35,6 +35,7 @@ class CameraSpline:
     
 
     def interpolate(self, t):
+        t = np.clip(t, self.ts[1], self.ts[-1])
 
         return self.trans_interpolator(t), self.rot_interpolator(t).as_matrix()
 
