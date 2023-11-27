@@ -11,20 +11,30 @@ from tqdm import tqdm
 from extrinsics_correction.point_selector import ImagePointSelector
 from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts, draw_2d_pnts
 from utils.images import calc_clearness_score
+from utils.misc import parallel_map
 
 WORK_DIR=osp.dirname(__file__)
 SAVE_DIR=osp.join(WORK_DIR, "chosen_triang_pnts")
 data_idxs = {"sofa_soccer_dragon": (1605, 1766)}
 
-def select_triag_pnts(colmap_dir = None, output_dir=None):
+def detect_chessboard(img):
+    ret, pnts = cv2.findChessboardCorners(img, (5, 8), None)
+    assert ret
+    return pnts
+
+def select_triag_pnts(colmap_dir = None, output_dir=None, use_checker=False):
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir))) if output_dir is None else output_dir
 
     manager = ColSceneManager(colmap_dir)
 
-    idx1, idx2 = 1605, 1766
+    idx1, idx2 = 1, 113
 
-    selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=False, save_dir=output_dir)
+    selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
     selector.select_points()
+    # if use_checker:
+    #     pnts_2d = parallel_map(detect_chessboard, selector.images, show_pbar=True, desc="finding corners")
+    #     selector.pnts = pnts_2d
+    #     selector.draw_points()
     selector.save_ref_img()
 
     extr1, extr2 = manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)
@@ -63,7 +73,7 @@ def gen_point_img(pnts, radius=5):
     return img, pnts
 
 
-def select_3d_coords(out_dir):
+def select_3d_checker_coords(out_dir):
 
     # Initialize 3D points
     objp = np.zeros((5*8, 3), np.float32)
@@ -89,7 +99,7 @@ def select_3d_coords(out_dir):
 
     chosen_pnts = objp[corr_idxs]
 
-    np.save(osp.join(out_dir, "corres_3d.pny"), chosen_pnts)
+    np.save(osp.join(out_dir, "corres_3d.npy"), chosen_pnts)
 
 def load_output_dir(path):
     pnts_fs = sorted(glob.glob(osp.join(path, "*_pnts.npy")))
@@ -234,8 +244,8 @@ def find_scale(out_dir):
     s, R, t = find_rigid_transform(corres, triang)
     
     error = np.sqrt((s*(corres@R.T) + t - triang)**2).mean()
-    print(error)
-    print(s)
+    print("error:", error)
+    print("scale:", s)
     return s
 
 
@@ -438,12 +448,14 @@ def proj_imgs(output_dir, colmap_dir):
         cv2.imwrite(osp.join(save_dir, f"{str(idx - center_idx + 100).zfill(6)}.png"), proj_img)
 
 if __name__ == "__main__":
-    colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/sofa_soccer_dragon_recon"
+    # scene="halloween_b2_v1"
+    scene="book_sofa"
+    colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-    # select_triag_pnts(colmap_dir, output_dir)
-    # triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    # select_3d_coords(output_dir)
-    # find_scale(output_dir)
-    pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
+    select_triag_pnts(colmap_dir, output_dir, use_checker=True)
+    triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
+    select_3d_checker_coords(output_dir)
+    find_scale(output_dir)
+    # pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
     # proj_imgs(output_dir, colmap_dir)
 
