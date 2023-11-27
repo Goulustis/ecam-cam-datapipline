@@ -13,32 +13,37 @@ from format_data.utils import EventBuffer, read_triggers
 from format_data.eimg_maker import ev_to_img
 from format_data.slerp_qua import CameraSpline
 from format_data.utils import read_triggers, read_ecam_intrinsics
-from format_data.format_ecam_set import create_and_write_camera_extrinsics
+from format_data.format_ecam_set import create_and_write_camera_extrinsics, calc_t_shift
+from format_data.slerp_qua import create_interpolated_ecams
 from extrinsics_creator.create_rel_cam import map_cam
 
-def create_eimg_by_triggers(events, triggers, exposure_time = 5000):
+def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
     eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.uint8)
     eimg_ts = []
     for i, trigger in tqdm(enumerate(triggers), total=len(triggers), desc="making ev imgs"):
         st_t, end_t = max(trigger - exposure_time//2, 0), trigger + exposure_time//2
-        eimg_ts.append(st_t )
-        curr_t, curr_x, curr_y, curr_p = events.retrieve_data(st_t, end_t)
+        eimg_ts.append(st_t)
 
-        eimg = ev_to_img(curr_x, curr_y, curr_p)
-        eimg[eimg != 0] = 255
-        eimgs[i] = eimg
-        
-        events.drop_cache_by_t(st_t)
+        if make_eimg:
+            curr_t, curr_x, curr_y, curr_p = events.retrieve_data(st_t, end_t)
+
+            eimg = ev_to_img(curr_x, curr_y, curr_p)
+            eimg[eimg != 0] = 255
+            eimgs[i] = eimg
+            
+            events.drop_cache_by_t(st_t)
     
     return eimgs, eimg_ts
 
 
 if __name__ == "__main__":
+    MAKE_EIMG=False
+    scene = "halloween_b2_v1"
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", help="input event file", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/processed_events.h5")
-    parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/triggers.txt")
-    parser.add_argument("-o", "--output", help="output directory", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/trig_eimgs")
-    parser.add_argument("-w", "--workdir", help="directory used to create the scene", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon")
+    parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
+    parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
+    parser.add_argument("-o", "--output", help="output directory", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_eimgs")
+    parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}")
     # parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=None)
     args = parser.parse_args()
 
@@ -48,19 +53,21 @@ if __name__ == "__main__":
     os.makedirs(args.output, exist_ok=True)
 
     try:
-        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers,10000)
+        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers,10000, make_eimg=MAKE_EIMG)
     except Exception as e:
         shutil.rmtree(args.output)
         print(e)
         assert 0
 
-    for i, eimg in tqdm(enumerate(eimgs), total=len(eimgs), desc="saving eimgs"):
-        save_f = osp.join(args.output, f"{str(i).zfill(6)}.png")
-        write_flag = cv2.imwrite(save_f, eimg)
+    if MAKE_EIMG:
+        for i, eimg in tqdm(enumerate(eimgs), total=len(eimgs), desc="saving eimgs"):
+            save_f = osp.join(args.output, f"{str(i).zfill(6)}.png")
+            write_flag = cv2.imwrite(save_f, eimg)
         assert write_flag, "write image failed"
     
 
     if args.workdir is not None:
+        SCALE=0.082
         trig_ecam_set_dir = osp.join(osp.dirname(args.output), "trig_ecamset")
         eimgs_dir = osp.join(trig_ecam_set_dir, "eimgs")
         trig_ecam_dir = osp.join(trig_ecam_set_dir, "camera")
@@ -68,15 +75,19 @@ if __name__ == "__main__":
         os.makedirs(eimgs_dir, exist_ok=True)
         os.makedirs(trig_ecam_set_dir, exist_ok=True)
 
-        np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
+        if MAKE_EIMG:
+            np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
 
         manager = ColSceneManager(glob.glob(osp.join(args.workdir, "*recon*"))[0])
-        colcam_extrinsics = [manager.get_extrnxs(idx) for idx in sorted(list(manager.images.keys()))]
+        colcam_extrinsics = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
         
         with open(osp.join(args.workdir, "rel_cam.json"), "r") as f:
             rel_cam = json.load(f)
             rel_cam["R"], rel_cam["T"] = np.array(rel_cam["R"]), np.array(rel_cam["T"])
-        ecams = map_cam(rel_cam, colcam_extrinsics, 0.158)
+        ecams = map_cam(rel_cam, colcam_extrinsics, SCALE)
+
+        t_shift = calc_t_shift(args.trigger_f)
+        ecams = create_interpolated_ecams(eimg_ts, triggers + t_shift, ecams)
 
         create_and_write_camera_extrinsics(trig_ecam_dir, ecams, eimg_ts, np.array(rel_cam["M2"]), np.array(rel_cam["dist2"]))
         print("saved trig ecamset to:", trig_ecam_set_dir)
