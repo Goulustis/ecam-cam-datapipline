@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from scipy.linalg import svd
+from scipy import optimize
 from tqdm import tqdm
 
 from extrinsics_correction.point_selector import ImagePointSelector
@@ -22,12 +23,16 @@ def detect_chessboard(img):
     assert ret
     return pnts
 
-def select_triag_pnts(colmap_dir = None, output_dir=None, use_checker=False):
+def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_checker=False):
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir))) if output_dir is None else output_dir
 
     manager = ColSceneManager(colmap_dir)
 
-    idx1, idx2 = 1, 113
+    if use_score:
+        clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
+        idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1] + 1
+    else:
+        idx1, idx2 = 1, 113
 
     selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
     selector.select_points()
@@ -381,8 +386,6 @@ def pnp_find_rel_cam(out_dir, work_dir):
     eimg_fs = sorted(glob.glob(osp.join(work_dir, "trig_eimgs", "*.png")))
     rel_cam_f = osp.join(work_dir, "rel_cam.json")
 
-
-
     objpnts = np.load(triag_f)
     # idx1, idx2 = idx1 - 1, idx2 - 1
     idx1, idx2 = idx1, idx2
@@ -409,10 +412,11 @@ def pnp_find_rel_cam(out_dir, work_dir):
         rgb_cam = np.load(rgb_cam_f)
         rgb_cam = manager.get_extrnxs([idx1, idx2][i] + 1)
         rgb_R, rgb_t = rgb_cam[:3,:3], rgb_cam[:3,3:]
-        ecam_R, ecam_t = pnp_extrns(objpnts, pnt, ecam_intrx, ecam_dist, rgb_R, rgb_t)
+        # ecam_R, ecam_t = pnp_extrns(objpnts, pnt, ecam_intrx, ecam_dist, rgb_R, rgb_t)
+        ecam_R, ecam_t = pnp_extrns(objpnts, pnt, ecam_intrx, ecam_dist)
         
         R_rel = ecam_R@rgb_R.T
-        T_rel = ecam_t - R_rel@rgb_t
+        T_rel = rgb_R.T@(ecam_t - rgb_t)
         Rs.append(R_rel), Ts.append(T_rel)
         ecam_Rs.append(ecam_R), ecam_Ts.append(ecam_t)
     
@@ -420,42 +424,68 @@ def pnp_find_rel_cam(out_dir, work_dir):
 
 
 
-def proj_imgs(output_dir, colmap_dir):
-    workdir = osp.dirname(colmap_dir)
 
-    save_dir = osp.join(output_dir, "proj_ecams")
-    rel_cam_f = osp.join(workdir, "rel_cam.json")
-    eimg_fs = sorted(glob.glob(osp.join(workdir, "trig_eimgs", "*.png")))
-
-    os.makedirs(save_dir, exist_ok=True)
-
-    with open(rel_cam_f, "r") as f:
+def scale_opt(output_dir, work_dir, colmap_dir):
+    relcam_f = osp.join(work_dir, "rel_cam.json")
+    with open(relcam_f, "r") as f:
         data = json.load(f)
-        ecam_intrx, ecam_dist = np.array(data["M2"]), np.array(data["dist2"])
-        R, T = np.array(data["R"]), np.array(data["T"])
+        ecam_K, ecam_D, R, T = [np.array(data[e]) for e in ["M2", "dist2", "R", "T"]]
     
-    objpnts = np.load(osp.join(output_dir, "triangulated.npy"))
-    manager = ColSceneManager(colmap_dir=colmap_dir)
+    objpoints = np.load(osp.join(output_dir, "triangulated.npy"))
+    pnts_2d = [np.load(f) for f in sorted(glob.glob(osp.join(output_dir, "*_opt.npy")))]
 
-    center_idx = 1605
-    eimg = cv2.imread(eimg_fs[center_idx])
-    for idx in tqdm(range(center_idx - 100, center_idx + 100), desc="proj eimgs"):
-        rgb_cam = manager.get_extrnxs(idx)
-        rgb_R, rgb_t = rgb_cam[:3,:3], rgb_cam[:3,3:]
-        ecam_R, ecam_t = R@rgb_R, R@rgb_t + T*0.158
-        prj_pnts, proj_img = proj_3d_pnts(eimg,ecam_intrx, np.concatenate([ecam_R, ecam_t], axis=-1), objpnts, dist_coeffs=ecam_dist)
+    idx1, idx2 = 225, 341
+    if len(pnts_2d) == 0:
+        eimg_fs = sorted(glob.glob(osp.join(work_dir, "trig_eimgs", "*.png")))
+        selector = ImagePointSelector([eimg_fs[idx1], eimg_fs[idx2]], end_fix="opt")
+        pnts_2d = selector.select_points()
+    
+    manager = ColSceneManager(colmap_dir)
+    rgb_extrs = [manager.get_extrnxs(idx1+1), manager.get_extrnxs(idx1+2)]
+
+    def loss_fn(scale):
+        loss = 0
+        for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs, pnts_2d)):
+            rgb_R, rgb_T = rgb_extr[:3,:3], rgb_extr[:3,3:]
+            ecam_R, ecam_T = R@rgb_R, R@rgb_T + T*scale
+            proj_pnts = proj_3d_pnts(None, ecam_K, np.concatenate([ecam_R, ecam_T], axis=1), objpoints, dist_coeffs=ecam_D)[0]
+            loss = loss + ((proj_pnts - pnt_2d)**2).mean()
         
-        cv2.imwrite(osp.join(save_dir, f"{str(idx - center_idx + 100).zfill(6)}.png"), proj_img)
+        return loss
+    
+    res = optimize.minimize(loss_fn, (0.158, ), bounds=[(0, None)])
+    print("optim scale:", res)
+
+
+    ##### PNP SOLVE #################
+    Rs, Ts = [], []
+    ecam_Rs, ecam_Ts = [], []
+    for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs, pnts_2d)):
+        rgb_R, rgb_T = rgb_extr[:3,:3], rgb_extr[:3,3:]
+        # ecam_R, ecam_T = pnp_extrns(objpoints, pnt_2d.astype(np.float32), ecam_K, ecam_D, rgb_R, rgb_T)
+        ecam_R, ecam_T = pnp_extrns(objpoints, pnt_2d.astype(np.float32), ecam_K, ecam_D)
+        
+        R_rel = ecam_R@rgb_R.T
+        # T_rel = ecam_t - R_rel@rgb_T
+        T_rel = rgb_R.T @ (ecam_T - rgb_T)
+        Rs.append(R_rel), Ts.append(T_rel)
+        ecam_Rs.append(ecam_R), ecam_Ts.append(ecam_T)
+    
+
+    assert 0
+
 
 if __name__ == "__main__":
     # scene="halloween_b2_v1"
-    scene="book_sofa"
+    scene="sofa_soccer_dragon"
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
-    output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-    select_triag_pnts(colmap_dir, output_dir, use_checker=True)
-    triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    select_3d_checker_coords(output_dir)
-    find_scale(output_dir)
-    # pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
-    # proj_imgs(output_dir, colmap_dir)
+    work_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}"
 
+    output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
+    # select_triag_pnts(colmap_dir, output_dir, use_score=True)
+    # triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
+    # select_3d_checker_coords(output_dir)
+    # find_scale(output_dir)
+    pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
+    # proj_imgs(output_dir, colmap_dir)
+    # scale_opt(output_dir, work_dir, colmap_dir)
