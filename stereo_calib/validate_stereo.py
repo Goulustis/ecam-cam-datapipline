@@ -12,6 +12,7 @@ from extrinsics_correction.point_selector import ImagePointSelector
 from extrinsics_correction.manual_scale_finding import pnp_extrns, triangulate_points
 from extrinsics_creator.create_rel_cam import map_cam
 from utils.misc import parallel_map
+from utils.images import calc_clearness_score
 
 TMP_DIR = "./tmp"
 
@@ -135,6 +136,26 @@ def find_chessboard_corners(img):
     cv2.cornerSubPix(img, pnts, (11,11),(-1,-1), criteria)
     return pnts
 
+def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False):
+    if osp.exists(colmap_pnts_f):
+        colmap_pnts = np.load(colmap_pnts_f)
+    else:
+        assert colmap_dir is not None, "need all other params to create 3d points"
+        manager = ColSceneManager(colmap_dir)
+        rgb_K, rgb_D = manager.get_intrnxs()
+        if calc_clear:
+            clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
+            idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1] + 1
+        else:
+            idx1, idx2 = 628, 1765
+
+        selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
+        pnts = selector.select_points()
+        colmap_pnts = triangulate_points(pnts, [manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)], 
+                                        {"intrinsics": rgb_K, "dist":rgb_D}, TMP_DIR)
+        np.save(colmap_pnts_f, colmap_pnts)
+    
+    return colmap_pnts
 
 
 def validate_in_colmap_space():
@@ -210,17 +231,29 @@ def load_json_intr(cam_f):
 
 
 def validate_ecamset():
-    pnts_3d_f = "/scratch/matthew/projects/ecam-cam-datapipline/tmp/triangulated.npy"
-    ecamset = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/calib_checker/ecam_set"
-    save_dir = osp.join(TMP_DIR, "ecamset_proj")
+    scene = "sofa_soccer_dragon"
+    objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
+
+    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
+    # ecamset = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/trig_ecamset"
+
+    colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
+
+    save_dir = osp.join(TMP_DIR, f"{scene}_ecamset_proj")
+    # save_dir = osp.join(TMP_DIR, f"{scene}_colcamset_proj")
+    # save_dir = osp.join(TMP_DIR, f"{scene}_trig_ecamset_proj")
 
     os.makedirs(save_dir, exist_ok=True)
-    objpnts = np.load(pnts_3d_f)
     cam_fs = sorted(glob.glob(osp.join(ecamset, "camera", "*.json")))
     eimgs = np.load(osp.join(ecamset, "eimgs", "eimgs_1x.npy"), "r")
+    # eimgs = sorted(glob.glob(osp.join(ecamset, "rgb", "1x", "*.png")))
 
     ecam_K, ecam_D = load_json_intr(cam_fs[0])
     ecams = parallel_map(load_json_cam, cam_fs, show_pbar=True, desc="loading json cams") #[load_json_cam(f) for f in cam_fs]
+
+
+    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False)
 
     def proj_fn(inp):
         img, extr = inp
@@ -228,12 +261,14 @@ def validate_ecamset():
 
 
     eimgs = parallel_map(lambda x : np.stack([(x != 0).astype(np.uint8) * 255]*3, axis=-1), eimgs, show_pbar=True, desc="creating eimgs")
+    # eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
     proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)), show_pbar=True, desc="projecting points")
 
     
     def save_fn(inp):
         img, idx = inp
-        cv2.imwrite(osp.join(save_dir, f"{str(idx).zfill(6)}.png"), img)
+        flag = cv2.imwrite(osp.join(save_dir, f"{str(idx).zfill(6)}.png"), img)
+        assert flag, "save img failed"
     
     parallel_map(save_fn, list(zip(proj_eimgs, list(range(len(eimgs))))), 
                  show_pbar=True, desc="saving projected")
