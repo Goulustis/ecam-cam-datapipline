@@ -82,13 +82,17 @@ def main(src_dir, num_blur=8):
     modify_save_metadata(src_dir, dst_dir, cam_fs)
     modify_save_dataset(src_dir, dst_dir)
 
+    src_cam_transform_f = osp.join(src_dir, "camera_transform.json")
+    if osp.exists(src_cam_transform_f):
+        shutil.copy(src_cam_transform_f, dst_dir)
+
 
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="create blur colcamset from clear colcam_set")
-    parser.add_argument("--src_dir", help="path to xxx/colcam_set", default="/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/book_sofa/colcam_set")
+    parser.add_argument("--src_dir", help="path to xxx/colcam_set", default="/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/sofa_soccer_dragon/colcam_set")
     parser.add_argument("--num_blur", help="number of frames to average", type=int, default=8)
 
     args = parser.parse_args()
