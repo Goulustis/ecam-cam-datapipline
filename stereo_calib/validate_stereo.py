@@ -231,37 +231,44 @@ def load_json_intr(cam_f):
 
 
 def validate_ecamset():
-    scene = "sofa_soccer_dragon"
+    scene = "halloween_b1_v1"
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
-    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
-    # ecamset = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/trig_ecamset"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
 
-    save_dir = osp.join(TMP_DIR, f"{scene}_ecamset_proj")
-    # save_dir = osp.join(TMP_DIR, f"{scene}_colcamset_proj")
-    # save_dir = osp.join(TMP_DIR, f"{scene}_trig_ecamset_proj")
+    save_dir_dicts = {"ecam_set":osp.join(TMP_DIR, f"{scene}_ecamset_proj"),
+                      "colcam_set": osp.join(TMP_DIR, f"{scene}_colcamset_proj"),
+                      "trig_ecamset":osp.join(TMP_DIR, f"{scene}_trig_ecamset_proj")}
+
+    save_dir = save_dir_dicts[osp.basename(ecamset)]
 
     os.makedirs(save_dir, exist_ok=True)
     cam_fs = sorted(glob.glob(osp.join(ecamset, "camera", "*.json")))
-    eimgs = np.load(osp.join(ecamset, "eimgs", "eimgs_1x.npy"), "r")
-    # eimgs = sorted(glob.glob(osp.join(ecamset, "rgb", "1x", "*.png")))
+
+    if "colcam_set" in ecamset:
+        eimgs = sorted(glob.glob(osp.join(ecamset, "rgb", "1x", "*.png")))
+    else:
+        eimgs = np.load(osp.join(ecamset, "eimgs", "eimgs_1x.npy"), "r")
 
     ecam_K, ecam_D = load_json_intr(cam_fs[0])
     ecams = parallel_map(load_json_cam, cam_fs, show_pbar=True, desc="loading json cams") #[load_json_cam(f) for f in cam_fs]
 
 
-    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False)
+    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=True)
 
     def proj_fn(inp):
         img, extr = inp
         return proj_3d_pnts(img, ecam_K, extr, objpnts, dist_coeffs=ecam_D)[1]
 
 
-    eimgs = parallel_map(lambda x : np.stack([(x != 0).astype(np.uint8) * 255]*3, axis=-1), eimgs, show_pbar=True, desc="creating eimgs")
-    # eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
+    if "colcam_set" in ecamset:
+        eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
+    else:
+        eimgs = parallel_map(lambda x : np.stack([(x != 0).astype(np.uint8) * 255]*3, axis=-1), eimgs, show_pbar=True, desc="creating eimgs")
     proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)), show_pbar=True, desc="projecting points")
 
     
