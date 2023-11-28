@@ -88,7 +88,7 @@ def main(src_dir, num_blur=8):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="create blur colcamset from clear colcam_set")
-    parser.add_argument("--src_dir", help="path to xxx/colcam_set")
+    parser.add_argument("--src_dir", help="path to xxx/colcam_set", default="/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/book_sofa/colcam_set")
     parser.add_argument("--num_blur", help="number of frames to average", type=int, default=8)
 
     args = parser.parse_args()
