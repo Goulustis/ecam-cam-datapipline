@@ -65,5 +65,5 @@ def calc_clearness_score(img_list, ignore_first = 0):
     ids = np.argsort(blur_scores) + ignore_first
     best = ids[::-1]
  
-    clear_image_idxs = [img_list[e] for e in best]
-    return clear_image_idxs, best
+    clear_image_fs = [img_list[e] for e in best]
+    return clear_image_fs, best, np.array(blur_scores)
