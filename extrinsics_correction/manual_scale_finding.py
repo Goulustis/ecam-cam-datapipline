@@ -32,14 +32,15 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
         idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1] + 1
     else:
-        idx1, idx2 = 1, 113
+        idx1, idx2 = 26,43
 
     selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
     selector.select_points()
-    # if use_checker:
-    #     pnts_2d = parallel_map(detect_chessboard, selector.images, show_pbar=True, desc="finding corners")
-    #     selector.pnts = pnts_2d
-    #     selector.draw_points()
+    if use_checker:
+        pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  selector.images])
+        selector.points = pnts_2d
+        selector.draw_points()
+        selector.save_all_points()
     selector.save_ref_img()
 
     extr1, extr2 = manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)
@@ -434,11 +435,11 @@ def scale_opt(output_dir, work_dir, colmap_dir):
     objpoints = np.load(osp.join(output_dir, "triangulated.npy"))
     pnts_2d = [np.load(f) for f in sorted(glob.glob(osp.join(output_dir, "*_opt.npy")))]
 
-    idx1, idx2 = 225, 341
-    if len(pnts_2d) == 0:
-        eimg_fs = sorted(glob.glob(osp.join(work_dir, "trig_eimgs", "*.png")))
-        selector = ImagePointSelector([eimg_fs[idx1], eimg_fs[idx2]], end_fix="opt")
-        pnts_2d = selector.select_points()
+    idx1, idx2 = 250, 337
+    # if len(pnts_2d) == 0:
+    eimg_fs = sorted(glob.glob(osp.join(work_dir, "trig_eimgs", "*.png")))
+    selector = ImagePointSelector([eimg_fs[idx1], eimg_fs[idx2]], end_fix="opt")
+    pnts_2d = selector.select_points()
     
     manager = ColSceneManager(colmap_dir)
     rgb_extrs = [manager.get_extrnxs(idx1+1), manager.get_extrnxs(idx1+2)]
@@ -475,17 +476,39 @@ def scale_opt(output_dir, work_dir, colmap_dir):
     assert 0
 
 
+def save_blur_imgs(colmap_dir):
+    import shutil
+
+    manager = ColSceneManager(colmap_dir)
+    img_fs = [manager.get_img_f(i+1) for i in range(len(manager))]
+    fs, idxs, scores = calc_clearness_score(img_fs)
+    
+    scores = scores[idxs]
+    fs = np.array(fs)[scores < 56]
+
+    save_dir = "tmp/blur_imgs"
+    os.makedirs(save_dir, exist_ok=True)
+    for i, img_f in enumerate(tqdm(fs, desc="saving blur fs")):
+        save_f = osp.join(save_dir, f"{str(i).zfill(4)}.png")
+        shutil.copy(img_f, save_f)
+
 if __name__ == "__main__":
-    # scene="halloween_b2_v1"
-    scene="sofa_soccer_dragon"
+    scene="grad_lounge_b1_v1"
+    # scene="sofa_soccer_dragon"
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
     work_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}"
 
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-    # select_triag_pnts(colmap_dir, output_dir, use_score=True)
-    # triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    # select_3d_checker_coords(output_dir)
-    # find_scale(output_dir)
-    pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
+    select_triag_pnts(colmap_dir, output_dir, use_score=False, use_checker=True)
+    triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
+    select_3d_checker_coords(output_dir)
+    find_scale(output_dir)
+    # pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
     # proj_imgs(output_dir, colmap_dir)
     # scale_opt(output_dir, work_dir, colmap_dir)
+
+
+    #### calc all images scores ###
+    # save_blur_imgs(colmap_dir)
+
+    
