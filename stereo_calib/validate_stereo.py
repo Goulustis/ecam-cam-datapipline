@@ -6,6 +6,7 @@ import glob
 import os.path as osp
 import os
 import matplotlib.pyplot as plt
+import contextlib
 
 from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts
 from extrinsics_correction.point_selector import ImagePointSelector
@@ -145,9 +146,9 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False):
         rgb_K, rgb_D = manager.get_intrnxs()
         if calc_clear:
             clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
-            idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1] + 1
+            idx1, idx2 = clear_idxs[0] + 1, clear_idxs[0 + 6] + 1
         else:
-            idx1, idx2 = 628, 1765
+            idx1, idx2 = 378, 29
 
         selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
         pnts = selector.select_points()
@@ -231,11 +232,13 @@ def load_json_intr(cam_f):
 
 
 def validate_ecamset():
+    # scene = "grad_lounge_b2_v1"
+    # scene = "atrium_b1_v1"
     scene = "halloween_b1_v1"
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
-    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
     # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
@@ -280,8 +283,13 @@ def validate_ecamset():
     parallel_map(save_fn, list(zip(proj_eimgs, list(range(len(eimgs))))), 
                  show_pbar=True, desc="saving projected")
 
+    save_f = f"{TMP_DIR}/{scene}_{osp.basename(ecamset)}.mp4"
 
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(save_f)
 
+    os.system(f"ffmpeg -framerate 60 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 5000 {save_f}")
+    print("saved to", save_f)
 
 
 if __name__ == "__main__":
