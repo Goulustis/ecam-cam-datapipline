@@ -3,6 +3,11 @@ import numpy as np
 import os
 import os.path as osp
 
+def detect_chessboard(img):
+    ret, pnts = cv2.findChessboardCorners(img, (5, 8), None)
+    assert ret
+    return pnts
+
 class ImagePointSelector:
     def __init__(self, image_paths, show_point_indices=True, save=True, save_dir = None, save_fs = None, end_fix="pnts"):
         self.image_paths = image_paths
@@ -96,6 +101,16 @@ class ImagePointSelector:
             else:
                 save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + f"_{self.end_fix}.npy")
             np.save(save_f, img_pnt)
+    
+    def select_checker(self):
+        pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  self.images])
+        self.points = pnts_2d
+        self.draw_points()
+
+        if self.save:
+            self.save_all_points()
+        
+        return pnts_2d
 
     def save_ref_img(self):
         ref_f = osp.join(self.save_dir, "ref_img.png")
