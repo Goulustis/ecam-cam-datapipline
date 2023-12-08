@@ -4,7 +4,7 @@ import os
 import os.path as osp
 
 class ImagePointSelector:
-    def __init__(self, image_paths, show_point_indices=True, save=True, save_dir = None, save_fs = None):
+    def __init__(self, image_paths, show_point_indices=True, save=True, save_dir = None, save_fs = None, end_fix="pnts"):
         self.image_paths = image_paths
         self.images = [cv2.imread(path) for path in image_paths]
         self.copies = [img.copy() for img in self.images]
@@ -12,9 +12,11 @@ class ImagePointSelector:
         self.show_point_indices = show_point_indices
         self.last_image_clicked = 0  # Index of the last image clicked
         self.prepare_images()
+
         self.save = save
         self.save_dir = save_dir if save_dir is not None else  osp.join(osp.dirname(osp.realpath(__file__)), "img_pnts")
         self.save_fs = save_fs
+        self.end_fix = end_fix
 
         os.makedirs(self.save_dir, exist_ok=True)
 
@@ -57,9 +59,10 @@ class ImagePointSelector:
         total_width = 0
         for idx, points in enumerate(self.points):
             for pidx, point in enumerate(points):
-                cv2.circle(self.composite_image, (point[0] + total_width, point[1] + self.top_paddings[idx]), 2, (0, 255, 0), -1)
+                pos0, pos1 = int(point[0]), int(point[1])
+                cv2.circle(self.composite_image, (pos0 + total_width, pos1 + self.top_paddings[idx]), 2, (0, 255, 0), -1)
                 if self.show_point_indices:
-                    cv2.putText(self.composite_image, str(pidx), (point[0] + total_width + 10, point[1] + self.top_paddings[idx] + 10),
+                    cv2.putText(self.composite_image, str(pidx), (pos0 + total_width + 10, pos1 + self.top_paddings[idx] + 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
             total_width += self.widths[idx]
         
@@ -91,11 +94,13 @@ class ImagePointSelector:
             if self.save_fs is not None:
                 save_f = self.save_fs[i]
             else:
-                save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + "_pnts.npy")
+                save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + f"_{self.end_fix}.npy")
             np.save(save_f, img_pnt)
 
     def save_ref_img(self):
-        cv2.imwrite(osp.join(self.save_dir, "ref_img.png"), self.composite_image)
+        ref_f = osp.join(self.save_dir, "ref_img.png")
+        cv2.imwrite(ref_f, self.composite_image)
+        print(ref_f)
 
 if __name__ == "__main__":
     ##### test
