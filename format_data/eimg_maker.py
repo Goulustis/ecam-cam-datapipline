@@ -22,7 +22,7 @@ def ev_to_img(x, y, p, e_thresh=0.15):
     
     assert np.abs(e_img).max() < np.iinfo(np.int8).max, "type needs to be bigger"
 
-    return e_img
+    return e_img.astype(np.int8)
 
 # @torch.no_grad()
 def ev_to_img_torch(x, y, p, e_thresh=0.15):
