@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
-    parser.add_argument("-o", "--output", help="output directory", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_imgs")
+    parser.add_argument("-o", "--output", help="output directory", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_eimgs")
     parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}")
     # parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=None)
 
