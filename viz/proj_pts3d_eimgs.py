@@ -90,7 +90,8 @@ def create_undist_proj_img(img, intrinsics, distortion, extrinsics, pts3d, cam="
 
     plt.savefig(f'{cam}_proj.png')
 
-
+# reference:
+# https://github.com/colmap/colmap/blob/8e7093d22b324ce71c70d368d852f0ad91743808/src/colmap/sensor/models.h#L268C34-L268C34
 def read_colmap_cam(cam_path, scale=1):
     # fx, fy, cx, cy, k1, k2, k3, k4
     cam = read_cameras_binary(cam_path)
