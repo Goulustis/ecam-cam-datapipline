@@ -35,16 +35,18 @@ def proj_3d_pnts(img, intrinsics, extrinsics, pnts_3d, pnt_idxs=None, dist_coeff
     proj_pnts_2d, _ = cv2.projectPoints(selected_pnts_3d, R, T, intrinsics, dist_coeffs)
 
     # Draw points and labels on the image
-    img_with_pnts = img.copy()
-    for i, p in enumerate(proj_pnts_2d):
-        try:
-            point = tuple(p[0].astype(int))
-            cv2.circle(img_with_pnts, point, 5, (0, 255, 0), -1)
-            if pnt_idxs is not None:
-                cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-        except Exception as e:
-            print("ERROR:", e)
-            
+    if img is not None:
+        img_with_pnts = img.copy()
+        for i, p in enumerate(proj_pnts_2d):
+            try:
+                point = tuple(p[0].astype(int))
+                cv2.circle(img_with_pnts, point, 5, (0, 255, 0), -1)
+                if pnt_idxs is not None:
+                    cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            except Exception as e:
+                print("ERROR:", e)
+    else:
+        img_with_pnts = img
 
     return proj_pnts_2d, img_with_pnts
 
