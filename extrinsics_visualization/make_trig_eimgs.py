@@ -41,7 +41,7 @@ def load_scale_factor(ev_f):
     work_dir = osp.dirname(ev_f)
     scale_f = osp.join(work_dir, f"{osp.basename(work_dir)}_recon", "colmap_scale.txt")
     with open(scale_f, "r") as f:
-        return int(f.read())
+        return float(f.read())
 
 
 if __name__ == "__main__":
