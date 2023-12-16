@@ -7,6 +7,15 @@ from utils.misc import parallel_map
 
 
 def calc_clearness_score(img_list, ignore_first = 0):
+    """
+    inp:
+        img_list (list [str]): path to image files
+    output:
+        clear_img_fs (list [str]): sorted images files from clearest to blurriest
+        best (list [int]): sorted idx of original img_list from clearest to blurriest
+        blur_scores (list [float]): blur score of each images (higher is clearer)
+
+    """
     # Get list of images in folder
     img_list = img_list[ignore_first:]
 
@@ -44,7 +53,8 @@ def calc_clearness_score(img_list, ignore_first = 0):
         [0, 1, 0, 0, 0],
         [1, 0, 0, 0, 0]
     ]], dtype=np.float32) / 5.0
-    for image in tqdm(images, desc="caculating blur score"):
+    
+    def calc_blur(image):
         gray_im = np.mean(image, axis=2)[::4, ::4]
 
         directional_blur_scores = []
@@ -59,8 +69,9 @@ def calc_clearness_score(img_list, ignore_first = 0):
 
         antiblur_index = (np.argmax(directional_blur_scores) + 2) % 4
 
-        blur_score = directional_blur_scores[antiblur_index]
-        blur_scores.append(blur_score)
+        return directional_blur_scores[antiblur_index]
+
+    blur_scores = parallel_map(calc_blur, images, show_pbar=True, desc="calculating blur score")
     
     ids = np.argsort(blur_scores) + ignore_first
     best = ids[::-1]
