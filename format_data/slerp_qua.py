@@ -28,16 +28,123 @@ class CameraSpline:
 
         if len(self.ts) != len(self.w2cs):
             warnings.warn(f"number of triggers {len(self.ts)} != num cameras {len(self.w2cs)}, assume extra cameras are not in triggers")
-            self.w2cs, self.coords = self.w2cs[:len(self.ts)], self.coords[:len(self.ts)]
+            min_size = min(len(self.w2cs), len(self.ts))
+            self.w2cs, self.coords = self.w2cs[:min_size], self.coords[:min_size]
+            self.ts = self.ts[:min_size]
         
         self.rot_interpolator = Slerp(self.ts, Rotation.from_matrix(self.w2cs))
-        self.trans_interpolator = interp1d(x=self.ts, y=self.coords, axis=0, kind="cubic", bounds_error=True)
+        self.trans_interpolator = interp1d(x=self.ts, y=self.coords, axis=0, kind="linear", bounds_error=True)
     
 
     def interpolate(self, t):
-        t = np.clip(t, self.ts[1], self.ts[-1])
+        t = np.clip(t, self.ts[0], self.ts[-1])
 
         return self.trans_interpolator(t), self.rot_interpolator(t).as_matrix()
+
+
+def lanczos_kernel(x, a=2):
+    return np.sinc(x) * np.sinc(x / a) * (np.abs(x) < a)
+
+
+def q_to_exp(q, q0):
+    bs = q.shape[:-1]
+    r = Rotation.from_quat(q.reshape(-1, 4))
+    r0 = Rotation.from_quat(q0.reshape(-1, 4))
+
+    rp = r * r0.inv()
+
+    qp = rp.as_quat().reshape(*bs, 4)
+
+    axis = qp[..., :3]
+    axlen = np.linalg.norm(axis, axis=-1, keepdims=True)
+    axis = axis / (axlen + 1e-7)
+    theta = np.arccos(qp[..., 3:4]) * 2
+    theta -= 2 * np.pi * (theta > np.pi)
+
+    return theta * axis
+
+def exp_to_q(ep, q0):
+    bs = ep.shape[:-1]
+    rp = Rotation.from_rotvec(ep.reshape(-1, 3))
+    r0 = Rotation.from_quat(q0.reshape(-1, 4))
+    r = rp * r0
+
+    q = r.as_quat().reshape(*bs, 4)
+    return q
+
+
+
+class LanczosSpline:
+    def __init__(self, ts, w2cs, coords) -> None:
+        self.orig_ts, self.w2cs, self.coords = ts, w2cs, coords
+        self.t_base = self.orig_ts[0]
+        self.orig_ts = self.orig_ts - self.t_base
+
+        if len(self.orig_ts) != len(self.w2cs):
+            warnings.warn(f"number of triggers {len(self.orig_ts)} != num cameras {len(self.w2cs)}, assume extra cameras are not in triggers")
+            min_size = min(len(self.w2cs), len(self.orig_ts))
+            self.w2cs, self.coords = self.w2cs[:min_size], self.coords[:min_size]
+            self.orig_ts = self.orig_ts[:min_size]
+        
+        rots = Rotation.from_matrix(self.w2cs)
+        assert np.abs(Rotation.from_quat(rots.as_quat()).as_matrix() - self.w2cs).sum() < 1e-6, "is mirror transform!"
+
+        self.q_orig = rots.as_quat()
+        self.slerp_orig = Slerp(self.orig_ts, rots)
+
+    
+    def interp_trans(self, ts, a=4):
+        dx_orig = self.orig_ts[1] - self.orig_ts[0]
+        i0 = np.floor(ts / dx_orig).astype(int)
+        i_off = np.arange(1 - a, a + 1)
+        i_all = i0[:, None] + i_off[None, :]
+        i_all = np.clip(i_all, 0, len(self.orig_ts) - 1)
+        y_all = self.coords[i_all]
+        t = (ts / dx_orig) % 1.0
+        t_all = t[:, None] - i_off[None, :]
+        w_all = lanczos_kernel(t_all, a)
+        return np.sum(y_all * w_all[..., None], axis=1)
+
+
+    def interp_rot(self, ts, a=4, iterations=100):
+        dt_orig = self.orig_ts[1] - self.orig_ts[0]
+        i0 = np.floor(ts / dt_orig).astype(np.int32)
+        i_off = np.arange(1 - a, a + 1)
+        i_all = i0[:, None] + i_off[None, :]
+        i_all = np.clip(i_all, 0, len(self.orig_ts) - 1)
+
+        u = (ts / dt_orig) % 1.0
+        u_all = u[:, None] - i_off[None, :]
+        w_all = lanczos_kernel(u_all, a)
+
+        q_all = self.q_orig[i_all]
+        r_init = self.slerp_orig(ts)
+        q_init = r_init.as_quat()
+        q_inter = q_init
+
+        for j in range(iterations):
+            e_all = q_to_exp(q_all, q_inter[..., None, :] + q_all * 0.0)
+            theta = np.linalg.norm(e_all, axis=-1, keepdims=True)
+            w_theta = (1 + np.cos(theta))**(1/2)
+            e_all = (e_all * w_theta) / np.sum(w_theta, axis=-2, keepdims=True)
+            e_new = np.sum(w_all[..., None] * e_all, axis=-2) * 0.1
+            q_new = exp_to_q(e_new, q_inter)
+            q_inter = q_new
+        
+        return q_inter
+
+
+    def interpolate(self, ts):
+        ts = ts - self.t_base
+        ts = np.clip(ts, self.orig_ts[0], self.orig_ts[-1])
+
+        new_trans = self.interp_trans(ts)
+        q_rot = self.interp_rot(ts)
+        mtx_rot = Rotation.from_quat(q_rot).as_matrix()
+
+        return new_trans, mtx_rot
+
+
 
 
 def unit_vector(data, axis=None, out=None):
@@ -210,7 +317,8 @@ def create_interpolated_ecams(eimg_ts, triggers, trig_ecams):
         return Rs, ts
     
     Rs, ts = split_extrnx(trig_ecams)
-    cam_spline = CameraSpline(triggers, Rs, ts)
+    # cam_spline = CameraSpline(triggers, Rs, ts)
+    cam_spline = LanczosSpline(triggers, Rs, ts)
     int_ts, int_Rs =  cam_spline.interpolate(eimg_ts)
 
     if len(int_ts.shape) == 2:
