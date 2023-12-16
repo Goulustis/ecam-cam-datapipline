@@ -30,17 +30,19 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
 
     if use_score:
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
-        idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1] + 1
+        idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1 + 12] + 1
     else:
-        idx1, idx2 = 26,43
+        idx1, idx2 = 1730, 29
 
     selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
-    selector.select_points()
     if use_checker:
-        pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  selector.images])
-        selector.points = pnts_2d
-        selector.draw_points()
-        selector.save_all_points()
+        selector.select_checker()
+        # pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  selector.images])
+        # selector.points = pnts_2d
+        # selector.draw_points()
+        # selector.save_all_points()
+    else:
+        selector.select_points()
     selector.save_ref_img()
 
     extr1, extr2 = manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)
@@ -79,7 +81,7 @@ def gen_point_img(pnts, radius=5):
     return img, pnts
 
 
-def select_3d_checker_coords(out_dir):
+def select_3d_checker_coords(out_dir, use_checker=False):
 
     # Initialize 3D points
     objp = np.zeros((5*8, 3), np.float32)
@@ -94,16 +96,19 @@ def select_3d_checker_coords(out_dir):
     pnt_plot_f = osp.join(WORK_DIR, '2d_points_plot.png')
     cv2.imwrite(pnt_plot_f, proj_img)
 
-    selector = ImagePointSelector([pnt_plot_f], save=False)
-    pnts = np.array(selector.select_points()[0])
-    pnt_scale = np.linalg.norm(pnts[1] - pnts[0])
-    ori_scale = np.linalg.norm(norm_pnts[1] - norm_pnts[0])
+    if not use_checker:
+        selector = ImagePointSelector([pnt_plot_f], save=False)
+        pnts = np.array(selector.select_points()[0])
+        pnt_scale = np.linalg.norm(pnts[1] - pnts[0])
+        ori_scale = np.linalg.norm(norm_pnts[1] - norm_pnts[0])
 
-    pnts = pnts/pnt_scale
-    norm_objp = norm_pnts/ori_scale
-    corr_idxs = find_correspondance(norm_objp, pnts)
+        pnts = pnts/pnt_scale
+        norm_objp = norm_pnts/ori_scale
+        corr_idxs = find_correspondance(norm_objp, pnts)
 
-    chosen_pnts = objp[corr_idxs]
+        chosen_pnts = objp[corr_idxs]
+    else:
+        chosen_pnts = objp
 
     np.save(osp.join(out_dir, "corres_3d.npy"), chosen_pnts)
 
@@ -493,7 +498,7 @@ def save_blur_imgs(colmap_dir):
         shutil.copy(img_f, save_f)
 
 if __name__ == "__main__":
-    scene="grad_lounge_b1_v1"
+    scene="black_seoul_b0_v3"
     # scene="sofa_soccer_dragon"
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
     work_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}"
@@ -501,7 +506,7 @@ if __name__ == "__main__":
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
     select_triag_pnts(colmap_dir, output_dir, use_score=False, use_checker=True)
     triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    select_3d_checker_coords(output_dir)
+    select_3d_checker_coords(output_dir, use_checker=True)
     find_scale(output_dir)
     # pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
     # proj_imgs(output_dir, colmap_dir)
