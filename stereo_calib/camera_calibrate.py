@@ -41,12 +41,19 @@ def find_corner_fancy(img_f, row, col):
     return ret, corners
 
 def save_correspond_img(from_img, to_img, idx):
+    """
+    idx (int/str): int for idx of stereo pair, str for image name
+    """
     save_dir = osp.join(TMP_DIR, "stereo_calib_imgs")
     os.makedirs(save_dir, exist_ok=True)
 
     expand_dim_fn = lambda img : img if len(img.shape) == 3 else img[...,None]
     from_img, to_img = expand_dim_fn(from_img), expand_dim_fn(to_img)
-    save_path = osp.join(save_dir, str(idx).zfill(6) + ".png")
+
+    if type(idx) == str:
+        save_path = osp.join(save_dir, idx)
+    else:
+        save_path = osp.join(save_dir, str(idx).zfill(6) + ".png")
     new_h = max(from_img.shape[0], to_img.shape[0])
 
     def pad_img(img):
@@ -92,7 +99,7 @@ def linear_map_rgb(img):
 
 
 class StereoCalibration(object):
-    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=300, st_n=150,
+    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=1500, st_n=150,
                  colcam_param_path="NULL", ecam_param_path="NULL"):
         """
         grid_size (float): size of grid
@@ -162,7 +169,8 @@ class StereoCalibration(object):
                 _, _ = sub_pix_fn(gray_from, corners_from), sub_pix_fn(gray_to, corners_to)  # will directly change "corners" memory
                 draw_corner = lambda img, corner, ret : cv2.drawChessboardCorners(img, (self.row,self.col), corner, ret)
                 from_img, to_img  = draw_corner(img_from, corners_from, ret_from), draw_corner(img_to, corners_to, ret_to)
-                save_correspond_img(from_img, to_img, i)
+                # save_correspond_img(from_img, to_img, i)
+                save_correspond_img(from_img, to_img, osp.basename(self.images_from_fs[i]))
                 self.objpoints.append(np.array(self.objp))
                 self.imgpoints_from.append(corners_from)
                 self.imgpoints_to.append(corners_to)
@@ -231,7 +239,7 @@ class StereoCalibration(object):
 
     def stereo_calibrate(self, dims):
         scores = self.calc_scores(dims)
-        cond = scores >= 0.98
+        cond = scores >= 0.985
         self.filter_pnts(cond)
 
         print("calibrating stereo camera...")
@@ -274,6 +282,7 @@ class StereoCalibration(object):
         print('F: \n', F)
 
         print('stereo rms:', ret)
+        print('pairs used:', cond.sum())
        
         camera_model = dict([('M1', M1),   # intrinsics for camera 1
                              ('M2', M2),   # intrinsics for camera 2
@@ -311,13 +320,13 @@ if __name__ == '__main__':
         out_path = osp.join(osp.dirname(args.to), "rel_cam.json")
     else:
         out_path = args.out
-    cal_data = StereoCalibration(args.from_imgs, args.to, args.size, colcam_param_path=args.colcam_param, ecam_param_path=args.ecam_param)
-    # cal_data = StereoCalibration(args.from_imgs, args.to, args.size, 
-    #                             #  colcam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin", 
-    #                             #  ecam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/proph_intrinsics.json",
-    #                              colcam_param_path=args.colcam_param, 
-    #                              ecam_param_path=args.ecam_param,
-    #                              )
+    # cal_data = StereoCalibration(args.from_imgs, args.to, args.size, colcam_param_path=args.colcam_param, ecam_param_path=args.ecam_param)
+    cal_data = StereoCalibration(args.from_imgs, args.to, args.size, 
+                                 colcam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/black_seoul_b0_v3_recons/sparse/0/cameras.bin", 
+                                 ecam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/proph_intrinsics.json",
+                                #  colcam_param_path=args.colcam_param, 
+                                #  ecam_param_path=args.ecam_param,
+                                 )
     cam_model = cal_data.camera_model
 
     to_save = {}
