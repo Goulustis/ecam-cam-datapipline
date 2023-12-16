@@ -91,7 +91,7 @@ def create_undist_proj_img(img, intrinsics, distortion, extrinsics, pts3d, cam="
     plt.savefig(f'{cam}_proj.png')
 
 
-def read_colmap_cam(cam_path, scale=2):
+def read_colmap_cam(cam_path, scale=1):
     # fx, fy, cx, cy, k1, k2, k3, k4
     cam = read_cameras_binary(cam_path)
     cam = cam[1]
