@@ -17,7 +17,8 @@ from format_data.format_ecam_set import create_and_write_camera_extrinsics, calc
 from format_data.slerp_qua import create_interpolated_ecams
 from extrinsics_creator.create_rel_cam import map_cam
 
-def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
+# def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
+def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=True):
     eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.uint8)
     eimg_ts = []
     for i, trigger in tqdm(enumerate(triggers), total=len(triggers), desc="making ev imgs"):
@@ -36,15 +37,27 @@ def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=Tr
     return eimgs, eimg_ts
 
 
+def load_scale_factor(ev_f):
+    work_dir = osp.dirname(ev_f)
+    scale_f = osp.join(work_dir, f"{osp.basename(work_dir)}_recon", "colmap_scale.txt")
+    with open(scale_f, "r") as f:
+        return int(f.read())
+
+
 if __name__ == "__main__":
-    MAKE_EIMG=False
-    scene = "halloween_b2_v1"
+    MAKE_EIMG=True
+    scene = "black_seoul_b1_v3"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
     parser.add_argument("-o", "--output", help="output directory", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_eimgs")
     parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}")
     # parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=None)
+
+    # parser.add_argument("-i", "--input", help="input event file", default=f"/scratch-ssd/workdir/{scene}/processed_events.h5")
+    # parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/scratch-ssd/workdir/{scene}/triggers.txt")
+    # parser.add_argument("-o", "--output", help="output directory", default=f"/scratch-ssd/workdir/{scene}/trig_eimgs")
+    # parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=f"/scratch-ssd/workdir/{scene}")
     args = parser.parse_args()
 
     events = EventBuffer(args.input)
@@ -67,7 +80,8 @@ if __name__ == "__main__":
     
 
     if args.workdir is not None:
-        SCALE=0.082
+        # SCALE=0.10473564
+        SCALE=load_scale_factor(args.input)
         trig_ecam_set_dir = osp.join(osp.dirname(args.output), "trig_ecamset")
         eimgs_dir = osp.join(trig_ecam_set_dir, "eimgs")
         trig_ecam_dir = osp.join(trig_ecam_set_dir, "camera")
