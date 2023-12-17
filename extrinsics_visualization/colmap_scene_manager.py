@@ -1,4 +1,5 @@
 import glob
+from utils.misc import parallel_map
 import os
 import os.path as osp
 import cv2
@@ -221,6 +222,10 @@ class ColSceneManager:
         mtx = np.concatenate([mtx, dummy], axis=0)
         return mtx
 
+    def get_all_extrnxs(self):
+        keys = sorted(list(self.images.keys()))
+        return [self.get_extrnxs(e) for e in keys]
+
     def get_intrnxs(self):
         return self.camera.intrxs, self.camera.get_dist_coeffs()
 
@@ -231,6 +236,8 @@ class ColSceneManager:
         assert img_idx > 0, "colmap img is 1 indexed!"
         return cv2.imread(self.get_img_f(img_idx))
 
+    def get_all_imgs(self, read_img_fn=cv2.imread):
+        return parallel_map(lambda f : read_img_fn(f), self.img_fs)
 
     def get_img_f(self, img_idx):
         assert img_idx != 0, "colmap index starts from 1"
