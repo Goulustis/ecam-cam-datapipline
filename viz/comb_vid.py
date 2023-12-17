@@ -96,7 +96,7 @@ def read_vid(path):
 
     return frames
 
-def concatenate_videos(video_path1, video_path2, output_path):
+def concatenate_videos(video_path1, video_path2, output_path=None):
     cap1_ori, cap2_ori = read_vid(video_path1), read_vid(video_path2)
 
     height1, width1 = cap1_ori[0].shape[:2]
@@ -115,8 +115,9 @@ def concatenate_videos(video_path1, video_path2, output_path):
 
     frame_idx = 0
     ret1, ret2 = True, True
+    comb_frames = []
     with tqdm(total=total_frames, desc="Processing", unit="frame") as pbar:
-        while True:
+        while True and (frame_idx < total_frames):
             # ret1, frame1 = cap1.read()
             # ret2, frame2 = cap2.read()
             frame1, frame2 = next(cap1), next(cap2)
@@ -137,14 +138,16 @@ def concatenate_videos(video_path1, video_path2, output_path):
                 frame2 = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
             combined_frame = np.hstack((frame1, frame2))
-            if out is None:
-                out = cv2.VideoWriter(output_path, fourcc, 16, combined_frame.shape[:2][::-1])
+            comb_frames.append(combined_frame)
             
             font = cv2.FONT_HERSHEY_SIMPLEX
             cv2.putText(combined_frame, f"{frame_idx}", (50, 50), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
-            out.write(combined_frame)
+            if out is None and (output_path is not None):
+                out = cv2.VideoWriter(output_path, fourcc, 16, combined_frame.shape[:2][::-1])
             
+            if (output_path is not None):
+                out.write(combined_frame)
 
             pbar.update(1)
             frame_idx += 1
@@ -154,10 +157,14 @@ def concatenate_videos(video_path1, video_path2, output_path):
 
     # cap1.release()
     # cap2.release()
-    out.release()
+    if (output_path is not None):
+        out.release()
+    
+    return comb_frames
 
 
 # Example usage
-concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_trig_ecamset.mp4', 
-                   '/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_colcam_set.mp4', 
-                   '/scratch/matthew/projects/ecam-cam-datapipline/tmp/debug.mp4')
+if __name__ == "__main__":
+    concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_trig_ecamset.mp4', 
+                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_colcam_set.mp4', 
+                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/debug.mp4')
