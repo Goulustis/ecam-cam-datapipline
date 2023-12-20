@@ -138,7 +138,9 @@ def concatenate_videos(video_path1, video_path2, output_path=None):
                 frame2 = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
             combined_frame = np.hstack((frame1, frame2))
-            comb_frames.append(combined_frame)
+
+            if output_path is None:
+                comb_frames.append(combined_frame)
             
             font = cv2.FONT_HERSHEY_SIMPLEX
             cv2.putText(combined_frame, f"{frame_idx}", (50, 50), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
@@ -165,6 +167,9 @@ def concatenate_videos(video_path1, video_path2, output_path=None):
 
 # Example usage
 if __name__ == "__main__":
-    concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_trig_ecamset.mp4', 
-                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_colcam_set.mp4', 
-                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/debug.mp4')
+    # concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_trig_ecamset.mp4', 
+    #                 '/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_colcam_set.mp4', 
+    #                 '/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid.mp4')
+    concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid.mp4', 
+                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid_ecam.mp4', 
+                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/compare_stuff.mp4')
