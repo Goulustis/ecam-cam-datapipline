@@ -5,19 +5,31 @@ import numpy as np
 from tqdm import tqdm
 
 
-def resize_and_pad(frame, target_height, target_width, pad_color=0):
+def resize_and_pad(frame, target_height, target_width, pad_color=0, axis=0):
     h, w = frame.shape[:2]
-    scale = target_height / h
-    new_h, new_w = target_height, int(w * scale)
-    resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
-    
-    if new_w < target_width:
-        pad_width = (target_width - new_w) // 2
-        padded = cv2.copyMakeBorder(resized, 0, 0, pad_width, target_width - new_w - pad_width, cv2.BORDER_CONSTANT, value=pad_color)
-    else:
-        padded = resized
+    if axis == 0:  # Vertical padding and concatenation
+        scale = target_width / w
+        new_h, new_w = int(h * scale), target_width
+        resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        if new_h < target_height:
+            pad_height = (target_height - new_h) // 2
+            padded = cv2.copyMakeBorder(resized, pad_height, target_height - new_h - pad_height, 0, 0, cv2.BORDER_CONSTANT, value=pad_color)
+        else:
+            padded = resized
+    else:  # Horizontal padding and concatenation
+        scale = target_height / h
+        new_h, new_w = target_height, int(w * scale)
+        resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        if new_w < target_width:
+            pad_width = (target_width - new_w) // 2
+            padded = cv2.copyMakeBorder(resized, 0, 0, pad_width, target_width - new_w - pad_width, cv2.BORDER_CONSTANT, value=pad_color)
+        else:
+            padded = resized
 
     return padded
+
 
 
 
@@ -41,7 +53,11 @@ def read_vid(path):
 
     return frames
 
-def concatenate_videos(video_path1, video_path2, output_path=None):
+def concatenate_videos(video_path1, video_path2, output_path=None, axis=1):
+    """
+    axis = 1 ---> horizontal horizontal concat
+    axis = 0 ---> vertical concat
+    """
     cap1_ori, cap2_ori = read_vid(video_path1), read_vid(video_path2)
 
     height1, width1 = cap1_ori[0].shape[:2]
@@ -73,16 +89,21 @@ def concatenate_videos(video_path1, video_path2, output_path=None):
                 break
 
             if ret1:
-                frame1 = resize_and_pad(frame1, target_height, target_width)
+                frame1 = resize_and_pad(frame1, target_height, target_width, axis=axis)
             else:
                 frame1 = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
             if ret2:
-                frame2 = resize_and_pad(frame2, target_height, target_width)
+                frame2 = resize_and_pad(frame2, target_height, target_width, axis=axis)
             else:
                 frame2 = np.zeros((target_height, target_width, 3), dtype=np.uint8)
 
-            combined_frame = np.hstack((frame1, frame2))
+            if axis == 1:
+                combined_frame = np.hstack((frame1, frame2))
+            elif axis == 0:
+                combined_frame = np.vstack((frame1, frame2))
+            else:
+                assert 0, f"{axis} not supported!!"
 
             if output_path is None:
                 comb_frames.append(combined_frame)
@@ -112,9 +133,9 @@ def concatenate_videos(video_path1, video_path2, output_path=None):
 
 # Example usage
 if __name__ == "__main__":
-    # concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_trig_ecamset.mp4', 
-    #                 '/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_colcam_set.mp4', 
-    #                 '/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid.mp4')
-    concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid.mp4', 
-                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid_ecam.mp4', 
-                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/compare_stuff.mp4')
+    concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_trig_ecamset.mp4', 
+                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/black_seoul_b3_v3_colcam_set.mp4', 
+                    '/scratch/matthew/projects/ecam-cam-datapipline/tmp/dev.mp4')
+    # concatenate_videos('/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid.mp4', 
+    #                 '/scratch/matthew/projects/ecam-cam-datapipline/tmp/comb_vid_ecam.mp4', 
+    #                 '/scratch/matthew/projects/ecam-cam-datapipline/tmp/compare_stuff.mp4')
