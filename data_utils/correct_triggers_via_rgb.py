@@ -46,6 +46,7 @@ def fix_trigger(triggers:np.ndarray, raw_ts:np.ndarray, thresh:float=4500.0):
         else:
             n_jump += 1
             trig_idx += 1
+            print(f"jumped at {trig_idx}")
             assert n_jump < 2, "more than 2 frames jumped!! code does not handel such a case!!"
     
     return np.array(new_trigs)
@@ -57,7 +58,7 @@ def main(trig_f, raw_dir, thresh=4500):
     # thresh = 4500.0
     
 
-    backup_f = osp.dirname(trig_f) + "backup_" + osp.basename(trig_f)
+    backup_f = osp.join(osp.dirname(trig_f) , "backup_" + osp.basename(trig_f))
     if not osp.exists(backup_f):
         print("making trigger backup")
         shutil.copy(trig_f, backup_f)
