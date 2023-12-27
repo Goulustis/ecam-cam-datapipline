@@ -26,7 +26,7 @@ def read_col_cam(extrinsics_path):
     
     return np.stack(cams)
 
-def map_cam(rel_cam, col_cams, scale):
+def apply_rel_cam(rel_cam, col_cams, scale):
     R, T = rel_cam["R"], rel_cam["T"]
     T = T*scale
     new_cams = []
@@ -62,10 +62,11 @@ def main():
     with open(args.scale_path, "r") as f:
         scale = float(f.readline())
 
-    e_cams = map_cam(rel_cam, col_cams, scale)
+    e_cams = apply_rel_cam(rel_cam, col_cams, scale)
     f = lambda x : osp.dirname(x)
     save_path = osp.join(f(f(f(f(args.col_cam_path)))), "e_cams.npy")
     np.save(save_path, e_cams)
+    print(f"e_cams.npy created sucessfully \n saved in {save_path}")
 
 if __name__ == "__main__":
     main()

@@ -15,7 +15,7 @@ from format_data.slerp_qua import CameraSpline
 from format_data.utils import read_triggers, read_ecam_intrinsics
 from format_data.format_ecam_set import create_and_write_camera_extrinsics, calc_t_shift
 from format_data.slerp_qua import create_interpolated_ecams
-from extrinsics_creator.create_rel_cam import map_cam
+from extrinsics_creator.create_rel_cam import apply_rel_cam
 
 # def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
 def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=True):
@@ -23,7 +23,7 @@ def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=T
     eimg_ts = []
     for i, trigger in tqdm(enumerate(triggers), total=len(triggers), desc="making ev imgs"):
         st_t, end_t = max(trigger - exposure_time//2, 0), trigger + exposure_time//2
-        eimg_ts.append(st_t)
+        eimg_ts.append(st_t + exposure_time//2)
 
         if make_eimg:
             curr_t, curr_x, curr_y, curr_p = events.retrieve_data(st_t, end_t)
@@ -45,8 +45,8 @@ def load_scale_factor(ev_f):
 
 
 if __name__ == "__main__":
-    MAKE_EIMG=True
-    scene = "black_seoul_b1_v3"
+    MAKE_EIMG=False
+    scene = "black_seoul_b3_v3"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
@@ -65,8 +65,9 @@ if __name__ == "__main__":
 
     os.makedirs(args.output, exist_ok=True)
 
+    t_shift = calc_t_shift(args.trigger_f)
     try:
-        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers,10000, make_eimg=MAKE_EIMG)
+        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers + t_shift, exposure_time=t_shift*2, make_eimg=MAKE_EIMG)
     except Exception as e:
         shutil.rmtree(args.output)
         print(e)
@@ -92,15 +93,16 @@ if __name__ == "__main__":
         if MAKE_EIMG:
             np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
 
-        manager = ColSceneManager(glob.glob(osp.join(args.workdir, "*recon*"))[0])
+        # manager = ColSceneManager(glob.glob(osp.join(args.workdir, "*recon*"))[0])
+        manager = ColSceneManager(osp.join(args.workdir, f"{scene}_recon"))
         colcam_extrinsics = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
         
         with open(osp.join(args.workdir, "rel_cam.json"), "r") as f:
             rel_cam = json.load(f)
             rel_cam["R"], rel_cam["T"] = np.array(rel_cam["R"]), np.array(rel_cam["T"])
-        ecams = map_cam(rel_cam, colcam_extrinsics, SCALE)
 
-        t_shift = calc_t_shift(args.trigger_f)
+        
+        ecams = apply_rel_cam(rel_cam, colcam_extrinsics, SCALE)
         ecams = create_interpolated_ecams(eimg_ts, triggers + t_shift, ecams)
 
         create_and_write_camera_extrinsics(trig_ecam_dir, ecams, eimg_ts, np.array(rel_cam["M2"]), np.array(rel_cam["dist2"]))

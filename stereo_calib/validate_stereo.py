@@ -11,7 +11,7 @@ import contextlib
 from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts
 from extrinsics_correction.point_selector import ImagePointSelector
 from extrinsics_correction.manual_scale_finding import pnp_extrns, triangulate_points
-from extrinsics_creator.create_rel_cam import map_cam
+from extrinsics_creator.create_rel_cam import apply_rel_cam
 from utils.misc import parallel_map
 from utils.images import calc_clearness_score
 
@@ -109,7 +109,7 @@ def validate_in_stereo_space():
     rgb_cams, cond = find_all_extrnsics(rgbs, rgb_K, rgb_D)
 
     eimgs = [e for e, c in zip(eimgs, cond) if c]
-    ecams = map_cam({"R":R, "T":T}, rgb_cams, scale=1)
+    ecams = apply_rel_cam({"R":R, "T":T}, rgb_cams, scale=1)
 
     def proj_fn(inp):
         img, extr = inp
@@ -150,7 +150,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
             # idx1, idx2 = clear_idxs[0] + 1, 1730
             
         else:
-            idx1, idx2 = 1730, 29
+            idx1, idx2 = 5, 1171
 
         selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
         if not use_checker:
@@ -195,7 +195,7 @@ def validate_in_colmap_space():
 
     grid_scale=0.39568848540866075/3
     colcams = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
-    ecams = map_cam({"R":R, "T":T}, colcams, grid_scale)
+    ecams = apply_rel_cam({"R":R, "T":T}, colcams, grid_scale)
 
     def proj_fn(inp):
         img, extr = inp
@@ -246,8 +246,8 @@ def validate_ecamset():
     # os.remove(objpnts_f)
 
     # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
-    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
 
@@ -264,12 +264,13 @@ def validate_ecamset():
         eimgs = sorted(glob.glob(osp.join(ecamset, "rgb", "1x", "*.png")))
     else:
         eimgs = np.load(osp.join(ecamset, "eimgs", "eimgs_1x.npy"), "r")
+    # eimgs = sorted(glob.glob(osp.join("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/black_seoul_b3_v3/events_imgs", "*.png")))
 
     ecam_K, ecam_D = load_json_intr(cam_fs[0])
     ecams = parallel_map(load_json_cam, cam_fs, show_pbar=True, desc="loading json cams") #[load_json_cam(f) for f in cam_fs]
 
 
-    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False)
+    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False, use_checker=True)
 
     def proj_fn(inp):
         img, extr = inp
@@ -280,6 +281,7 @@ def validate_ecamset():
         eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
     else:
         eimgs = parallel_map(lambda x : np.stack([(x != 0).astype(np.uint8) * 255]*3, axis=-1), eimgs, show_pbar=True, desc="creating eimgs")
+    # eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
     proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)), show_pbar=True, desc="projecting points")
 
     
@@ -296,7 +298,8 @@ def validate_ecamset():
     with contextlib.suppress(FileNotFoundError):
         os.remove(save_f)
 
-    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 5000 {save_f}")
+    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 5000 {save_f}")
+    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 5000 {save_f}")
     print("saved to", save_f)
 
 
