@@ -80,17 +80,58 @@ class LanczosSpline:
         self.t_base = self.orig_ts[0]
         self.orig_ts = self.orig_ts - self.t_base
 
+        rots = Rotation.from_matrix(self.w2cs)
+        assert np.abs(Rotation.from_quat(rots.as_quat()).as_matrix() - self.w2cs).sum() < 1e-6, "is mirror transform!"
+
         if len(self.orig_ts) != len(self.w2cs):
             warnings.warn(f"number of triggers {len(self.orig_ts)} != num cameras {len(self.w2cs)}, assume extra cameras are not in triggers")
             min_size = min(len(self.w2cs), len(self.orig_ts))
             self.w2cs, self.coords = self.w2cs[:min_size], self.coords[:min_size]
             self.orig_ts = self.orig_ts[:min_size]
         
+        self.fix_assumption()
         rots = Rotation.from_matrix(self.w2cs)
-        assert np.abs(Rotation.from_quat(rots.as_quat()).as_matrix() - self.w2cs).sum() < 1e-6, "is mirror transform!"
-
         self.q_orig = rots.as_quat()
         self.slerp_orig = Slerp(self.orig_ts, rots)
+    
+    
+    def fix_assumption(self):
+        """
+        Lanczos assumes dt interval is same for all, after fixing "yes trigger, no frames"; assumption is broken.
+        This function will inject an average position and make a new t to fix it
+        """
+
+        dt = self.orig_ts[1] - self.orig_ts[0]
+
+        new_ts, new_w2cs, new_coords = [self.orig_ts[0]], [self.w2cs[0]], [self.coords[0]]
+        for i in range(len(self.orig_ts) - 1):
+            curr_dt = np.abs(self.orig_ts[i+1] - self.orig_ts[i])
+            if curr_dt > dt:
+                # Number of steps to interpolate
+                steps = int(np.ceil(curr_dt / dt))
+
+                for step in range(1, steps):
+                    # Interpolate time
+                    t = self.orig_ts[i] + step * dt
+                    new_ts.append(t)
+
+                    # Linearly interpolate w2c and coords
+                    interp_w2c = self.w2cs[i] + (self.w2cs[i+1] - self.w2cs[i]) * (step / steps)
+                    interp_coord = self.coords[i] + (self.coords[i+1] - self.coords[i]) * (step / steps)
+
+                    new_w2cs.append(interp_w2c)
+                    new_coords.append(interp_coord)
+
+            # Add the original next timestamp, w2c, and coord
+            new_ts.append(self.orig_ts[i+1])
+            new_w2cs.append(self.w2cs[i+1])
+            new_coords.append(self.coords[i+1])
+
+        # Update the class attributes
+        self.orig_ts = np.array(new_ts)
+        self.w2cs = np.stack(new_w2cs)
+        self.coords = np.stack(new_coords)
+
 
     
     def interp_trans(self, ts, a=4):
