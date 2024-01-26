@@ -59,8 +59,11 @@ def create_event_imgs(events:EventBuffer, triggers=None, time_delta=5000, create
 
             if (events is not None) and create_imgs:
                 curr_t, curr_x, curr_y, curr_p = events.retrieve_data(trig_st, trig_end)
-
+                if len(curr_t) == 0:
+                    break
             
+            if trig_st >= events.t_f[-1]:
+                break
 
             st_t = trig_st
             end_t = trig_st + time_delta
@@ -69,6 +72,9 @@ def create_event_imgs(events:EventBuffer, triggers=None, time_delta=5000, create
             while st_t < trig_end:
                 if (events is not None) and create_imgs:
                     cond = (st_t <= curr_t) & (curr_t <= end_t)
+                    if cond.sum() == 0:
+                        break
+
                     eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
                     eimgs.append(eimg)
 
