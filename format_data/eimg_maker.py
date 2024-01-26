@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-# import torch
+from format_data.utils import EventBuffer
 
 def ev_to_img(x, y, p, e_thresh=0.15):
     """
@@ -24,55 +24,8 @@ def ev_to_img(x, y, p, e_thresh=0.15):
 
     return e_img.astype(np.int8)
 
-# @torch.no_grad()
-def ev_to_img_torch(x, y, p, e_thresh=0.15):
-    """
-    input:
-        x, y, p (torch.Tensor): x and y are coordinates, p indicates polarity
-    return:
-        event_img (torch.Tensor): of shape (h, w)
-    """
-    h, w = 720, 1280
-    e_img = torch.zeros(h * w, dtype=torch.int32).to(x)
 
-    # Get linear indices
-    linear_indices = y * w + x
-
-    # Separate positive and negative polarity
-    pos = p == 1
-    neg = p == 0
-
-    # Use bincount to accumulate the events
-    e_img += torch.bincount(linear_indices[pos], minlength=h*w)
-    e_img -= torch.bincount(linear_indices[neg], minlength=h*w)
-
-    # Reshape the flattened image back to its original shape
-    e_img = e_img.view(h, w)
-
-    # Ensure that the values are within the valid range for int8
-    assert torch.abs(e_img).max() < torch.iinfo(torch.int8).max, "type needs to be bigger"
-
-    return e_img.cpu().numpy().astype(np.int8)
-
-def synthesize_fake_triggers(evs_end_t, trig_st=0, n_eimg_per_gap=4, time_delta=5000):
-    """
-    When no triggers is provided, synthesize a set of fake triggers that splits the entire
-    event stream 
-
-    input:
-        evs_end_t (int): last time stamp of event
-        trig_st (int):   start time of synthetic trigger
-        n_eimg_per_gap (int) : number of event image per gap
-        time_delta(int)  : the time window to accumulate events by
-    """
-    n_eimg_per_gap = 4
-    trig_delta = n_eimg_per_gap*time_delta
-    trig_st = 0
-    triggers = [trig_st+i*trig_delta for i in range((evs_end_t - trig_st)//trig_delta)]
-    return triggers
-
-
-def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True, st_t=0):
+def create_event_imgs(events:EventBuffer, triggers=None, time_delta=5000, create_imgs = True, st_t=0):
     """
     input:
         events (np.array [type (t, x, y, p)]): events
@@ -93,19 +46,6 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     else:
         print("not creating event images, interpolating cameras and creating ids only")
 
-    # if (events is not None):
-    #     t = events["t"]
-    #     cond = t >= st_t
-    #     t, x, y, p = events["t"][cond], events["x"][cond], events["y"][cond], events["p"][cond]
-    
-    
-    if triggers is not None:
-        # number of eimg per trigger gap
-        n_eimg_per_gap = int((triggers[1] - triggers[0]) // time_delta)
-    else:
-        n_eimg_per_gap = 4
-        triggers = synthesize_fake_triggers(t[-1], n_eimg_per_gap=n_eimg_per_gap, 
-                                            trig_st=st_t)
 
     eimgs = []       # the event images
     eimgs_ts = []    # timestamp of event images
@@ -119,7 +59,6 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
 
             if (events is not None) and create_imgs:
                 curr_t, curr_x, curr_y, curr_p = events.retrieve_data(trig_st, trig_end)
-                # curr_t, curr_x, curr_y, curr_p = torch.from_numpy(curr_t).cuda(), torch.from_numpy(curr_x.astype(np.int32)).cuda(), torch.from_numpy(curr_y.astype(np.int32)).cuda(), torch.from_numpy(curr_p).cuda()
 
             
 
@@ -131,7 +70,6 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
                 if (events is not None) and create_imgs:
                     cond = (st_t <= curr_t) & (curr_t <= end_t)
                     eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
-                    # eimg = ev_to_img_torch(curr_x[cond], curr_y[cond], curr_p[cond])
                     eimgs.append(eimg)
 
                 eimgs_ids.append(id_cnt)
@@ -151,9 +89,3 @@ def create_event_imgs(events, triggers=None, time_delta=5000, create_imgs = True
     else:
         return None, np.array(eimgs_ts), np.array(eimgs_ids, dtype=np.int32), np.array(trig_ids, dtype=np.int32)
 
-
-
-
-# PLAN:
-# 1) use img_times as points for interpolation
-# 2) use trigger ids for warp embd id in color dataset
