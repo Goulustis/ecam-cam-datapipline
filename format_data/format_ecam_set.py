@@ -125,8 +125,8 @@ def calc_time_delta(triggers, min_mult=3):
     delta_t = triggers[1] - triggers[0]
     n_mult = np.round(delta_t/5000)
     n_mult = max(min_mult, n_mult)
-
-    return int(delta_t/n_mult + 11)
+    
+    return np.ceil(delta_t/n_mult).astype(int)
 
 
 def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, create_eimgs):
@@ -172,10 +172,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="make the event camera extrinsics dataset")
 
     # data_path is for getting the event h5 and the event camera extrinsics
-    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker")
-    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/rel_cam.json")
+    # parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/office_b2_v3")
+    # parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/office_b2_v3/rel_cam.json")
+    # parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/office_b2_v3/triggers.txt")
+
+    dataset = "grad_lounge_b2_v1"
+    parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{dataset}")
+    parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{dataset}/rel_cam.json")
+    parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{dataset}/triggers.txt")
+
     parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="debug")
-    parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/triggers.txt")
     parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
     args = parser.parse_args()
 
