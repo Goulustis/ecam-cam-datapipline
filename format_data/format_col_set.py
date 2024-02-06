@@ -216,8 +216,9 @@ def find_clear_val_test(scene_manager):
     # Get list of images in folder
     
     ignore_first = 40
+    ignore_last = 5
     # img_list = img_list[ignore_first:]
-    img_idxs = scene_manager.image_ids[ignore_first:]
+    img_idxs = scene_manager.image_ids[ignore_first:-ignore_last]
 
     # Load images
     # images = list(map(imageio.imread, tqdm.tqdm(img_list)))
@@ -283,13 +284,6 @@ def find_clear_val_test(scene_manager):
     return clear_image_idxs[:15], clear_image_idxs[15:]
 
 parser = argparse.ArgumentParser(description="process colmap into nerfies dataset")
-# parser.add_argument("--img_dir", help="path to images", default="data/checker/original_images")
-# parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/checker/checker_recon/sparse/0")
-# parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=2)
-# parser.add_argument("--target_dir", help="place to save the formatted dataset", default="data/formatted_checker/colcam_set")
-# parser.add_argument("--blurry_per", help="blurry param used for filtering out blurring images", type=float, default=0)
-# parser.add_argument("--trigger_path", help="path to event triggers", default="data/checker/triggers.txt")
-# parser.add_argument("--trig_ids_path", help="path to trigger ids created from event data set", default="data/formatted_checker/ecam_set/trig_ids.npy")
 parser.add_argument("--img_dir", help="path to images", default="data/rgb_checker/rgb_checker_recon/images")
 parser.add_argument("--colmap_dir", help="path to colmap output [eg. colmap_dir=somepath/sparse/0 ]",default="data/rgb_checker/rgb_checker_recon/sparse/0")
 parser.add_argument("--img_scale", type=int, help="the scale to rescale the scene back to", default=1)
@@ -314,7 +308,7 @@ triggers = read_triggers(args.trigger_path)
 trig_ids = np.load(args.trig_ids_path)
 
 # @title Load COLMAP scene.
-import plotly.graph_objs as go
+# import plotly.graph_objs as go
 
 scene_manager = SceneManager.from_pycolmap(
     colmap_dir, 
@@ -337,23 +331,23 @@ if colmap_image_scale > 1:
     scene_manager.camera_dict[item_id] = camera.scale(colmap_image_scale)
 
 
-fig = go.Figure()
-fig.add_trace(go.Scatter3d(
-    x=scene_manager.points[:, 0],
-    y=scene_manager.points[:, 1],
-    z=scene_manager.points[:, 2],
-    mode='markers',
-    marker=dict(size=2),
-))
-fig.add_trace(go.Scatter3d(
-    x=scene_manager.camera_positions[:, 0],
-    y=scene_manager.camera_positions[:, 1],
-    z=scene_manager.camera_positions[:, 2],
-    mode='markers',
-    marker=dict(size=2),
-))
-fig.update_layout(scene_dragmode='orbit')
-fig.show()
+# fig = go.Figure()
+# fig.add_trace(go.Scatter3d(
+#     x=scene_manager.points[:, 0],
+#     y=scene_manager.points[:, 1],
+#     z=scene_manager.points[:, 2],
+#     mode='markers',
+#     marker=dict(size=2),
+# ))
+# fig.add_trace(go.Scatter3d(
+#     x=scene_manager.camera_positions[:, 0],
+#     y=scene_manager.camera_positions[:, 1],
+#     z=scene_manager.camera_positions[:, 2],
+#     mode='markers',
+#     marker=dict(size=2),
+# ))
+# fig.update_layout(scene_dragmode='orbit')
+# fig.show()
 
 # @title Filter blurry frames.
 from matplotlib import pyplot as plt
@@ -570,14 +564,14 @@ print(f'Scene Scale: {scene_scale}')
 
 # @title Visualize scene.
 
-def scatter_points(points, size=2):
-  return go.Scatter3d(
-    x=points[:, 0],
-    y=points[:, 1],
-    z=points[:, 2],
-    mode='markers',
-    marker=dict(size=size),
-  )
+# def scatter_points(points, size=2):
+#   return go.Scatter3d(
+#     x=points[:, 0],
+#     y=points[:, 1],
+#     z=points[:, 2],
+#     mode='markers',
+#     marker=dict(size=size),
+#   )
 
 camera = new_scene_manager.camera_list[0]
 near_points = camera.pixels_to_points(
@@ -585,17 +579,17 @@ near_points = camera.pixels_to_points(
 far_points = camera.pixels_to_points(
     camera.get_pixel_centers()[::8, ::8], np.array(far)).reshape((-1, 3))
 
-data = [
-  scatter_points(new_scene_manager.points),
-  scatter_points(new_scene_manager.camera_positions),
-  scatter_points(bbox_corners),
-  scatter_points(near_points),
-  scatter_points(far_points),
-]
+# data = [
+#   scatter_points(new_scene_manager.points),
+#   scatter_points(new_scene_manager.camera_positions),
+#   scatter_points(bbox_corners),
+#   scatter_points(near_points),
+#   scatter_points(far_points),
+# ]
 
-fig = go.Figure(data=data)
-fig.update_layout(scene_dragmode='orbit')
-fig.show()
+# fig = go.Figure(data=data)
+# fig.update_layout(scene_dragmode='orbit')
+# fig.show()
 
 """## Generate test cameras."""
 
@@ -721,19 +715,19 @@ for position in positions:
 
 camera_paths = {'orbit-mild': orbit_cameras}
 
-traces = [
-  scatter_points(new_scene_manager.points),
-  scatter_points(new_scene_manager.camera_positions),
-  scatter_points(bbox_corners),
-  scatter_points(near_points),
-  scatter_points(far_points),
+# traces = [
+#   scatter_points(new_scene_manager.points),
+#   scatter_points(new_scene_manager.camera_positions),
+#   scatter_points(bbox_corners),
+#   scatter_points(near_points),
+#   scatter_points(far_points),
 
-  scatter_points(positions),
-  scatter_points(origins),
-]
-fig = go.Figure(traces)
-fig.update_layout(scene_dragmode='orbit')
-fig.show()
+#   scatter_points(positions),
+#   scatter_points(origins),
+# ]
+# fig = go.Figure(traces)
+# fig.update_layout(scene_dragmode='orbit')
+# fig.show()
 
 """## Save data."""
 
