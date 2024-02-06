@@ -5,17 +5,17 @@ conda activate ecam_proc
 
 WORKING_DIR=$(pwd)
 ##################### general config for both dataset ############################
-SCENE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker                  # [REQUIRED] path/scene
-TARG_DIR=/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/calib_checker          # [REQUIRED] path to location to save the formatted dataset
+SCENE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b1_v1                  # [REQUIRED] path/scene
+TARG_DIR=/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/boardroom_b1_v1          # [REQUIRED] path to location to save the formatted dataset
 CREATE_EIMG=True                             # [REQUIRED] True for creating event images, False for just the camera extrinsics
 RELCAM_PATH=$SCENE_PATH/rel_cam.json         # path to relative camera
 TRIGGER_PATH=$SCENE_PATH/triggers.txt        # path to triggers
 ECAM_TARG_DIR=$TARG_DIR/ecam_set             # path to save processed event camera data
 
 
-echo reformat events
 PROCESSED_EVENT_F=$SCENE_PATH/processed_events.h5
 if [ ! -e "$PROCESSED_EVENT_F" ]; then
+    echo reformat events
     python data_utils/process_event_format.py -i $SCENE_PATH/events.h5 -o $PROCESSED_EVENT_F -t $TRIGGER_PATH
 fi
 
