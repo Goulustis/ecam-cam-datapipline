@@ -255,6 +255,8 @@ def find_scale(out_dir):
     triang_f = osp.join(out_dir, "triangulated.npy")
     corres_f = osp.join(out_dir, "corres_3d.npy")
     triang, corres = np.load(triang_f), np.load(corres_f)
+
+    # find s,R,t maps corres --> triang
     s, R, t = find_rigid_transform(corres, triang)
     
     error = np.sqrt((s*(corres@R.T) + t - triang)**2).mean()
