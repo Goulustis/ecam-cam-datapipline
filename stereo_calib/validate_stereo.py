@@ -8,7 +8,7 @@ import os
 import matplotlib.pyplot as plt
 import contextlib
 
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager, proj_3d_pnts
 from extrinsics_correction.point_selector import ImagePointSelector
 from extrinsics_correction.manual_scale_finding import pnp_extrns, triangulate_points
 from extrinsics_creator.create_rel_cam import apply_rel_cam
@@ -142,7 +142,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
         colmap_pnts = np.load(colmap_pnts_f)
     else:
         assert colmap_dir is not None, "need all other params to create 3d points"
-        manager = ColSceneManager(colmap_dir)
+        manager = ColmapSceneManager(colmap_dir)
         rgb_K, rgb_D = manager.get_intrnxs()
         if calc_clear:
             clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
@@ -150,7 +150,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
             # idx1, idx2 = clear_idxs[0] + 1, 1730
             
         else:
-            idx1, idx2 = 5, 1171
+            idx1, idx2 = 39, 70
 
         selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
         if not use_checker:
@@ -172,7 +172,7 @@ def validate_in_colmap_space():
     relcam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/rel_cam.json"
     save_dir = osp.join(TMP_DIR, "colmap_stereo_proj")
 
-    manager = ColSceneManager(colmap_dir)
+    manager = ColmapSceneManager(colmap_dir)
     os.makedirs(save_dir, exist_ok=True)
     rgb_K, rgb_D, ecam_K, ecam_D, R, T = load_relcam(relcam_f)
 
@@ -238,16 +238,16 @@ def load_json_intr(cam_f):
 
 
 def validate_ecamset():
-    # scene = "grad_lounge_b2_v1"
-    # scene = "working_calib_checker"
-    scene = "black_seoul_b3_v3"
+    # scene = "black_seoul_b3_v3"
+    scene = "boardroom_b1_v1"
+
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
     # os.remove(objpnts_f)
 
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
     # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
-    ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
 
@@ -256,6 +256,7 @@ def validate_ecamset():
                       "trig_ecamset":osp.join(TMP_DIR, f"{scene}_trig_ecamset_proj")}
 
     save_dir = save_dir_dicts[osp.basename(ecamset)]
+    # save_dir = osp.join(TMP_DIR, f"{scene}_ecamset_3x_proj")
 
     os.makedirs(save_dir, exist_ok=True)
     cam_fs = sorted(glob.glob(osp.join(ecamset, "camera", "*.json")))
@@ -270,7 +271,7 @@ def validate_ecamset():
     ecams = parallel_map(load_json_cam, cam_fs, show_pbar=True, desc="loading json cams") #[load_json_cam(f) for f in cam_fs]
 
 
-    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False, use_checker=True)
+    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False, use_checker=False)
 
     def proj_fn(inp):
         img, extr = inp
@@ -298,8 +299,8 @@ def validate_ecamset():
     with contextlib.suppress(FileNotFoundError):
         os.remove(save_f)
 
-    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 5000 {save_f}")
-    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 5000 {save_f}")
+    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 7500 {save_f}")
+    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 6050 {save_f}")
     print("saved to", save_f)
 
 

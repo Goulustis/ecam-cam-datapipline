@@ -7,7 +7,7 @@ from tqdm import tqdm
 import argparse
 
 import colmap_find_scale.read_write_model as colmap_utils
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 from extrinsics_visualization.ev_scene_manager import EvSceneManager
 from extrinsics_visualization.colmap_scene_manager import proj_3d_pnts, concat_imgs
 
@@ -48,7 +48,7 @@ def main(colmap_dir, ev_recon_img_dir, ecam_f, rel_cam_f):
     # ecam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/e_cams.npy"
     # rel_cam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/rel_cam.json"
 
-    colmap_manager = ColSceneManager(colmap_dir)
+    colmap_manager = ColmapSceneManager(colmap_dir)
     ev_manager = EvSceneManager(ev_recon_img_dir, ecam_f, rel_cam_f)
 
     colmap_manager.view_img_points(img_idx=3)  # initialize some points for projection

@@ -10,7 +10,7 @@ from scipy import optimize
 from tqdm import tqdm
 
 from extrinsics_correction.point_selector import ImagePointSelector
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts, draw_2d_pnts
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager, proj_3d_pnts, draw_2d_pnts
 from utils.images import calc_clearness_score
 from utils.misc import parallel_map
 
@@ -26,13 +26,16 @@ def detect_chessboard(img):
 def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_checker=False):
     output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir))) if output_dir is None else output_dir
 
-    manager = ColSceneManager(colmap_dir)
+    manager = ColmapSceneManager(colmap_dir)
 
     if use_score:
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
-        idx1, idx2 = clear_idxs[0] + 1, clear_idxs[1 + 12] + 1
+        idx1, idx2 = clear_idxs[1] + 1, clear_idxs[3] + 1
     else:
-        idx1, idx2 = 1730, 29
+        # idx1, idx2 = 7, 45
+        idx1, idx2 = 1, 39
+    
+    print("img used:", osp.basename(manager.get_img_f(idx1)), osp.basename(manager.get_img_f(idx2)))
 
     selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
     if use_checker:
@@ -413,7 +416,7 @@ def pnp_find_rel_cam(out_dir, work_dir):
     rgb_cam_fs = sorted(glob.glob(osp.join(out_dir, "*_extrxs.npy")))
     Rs, Ts = [], []
     ecam_Rs, ecam_Ts = [], []
-    manager = ColSceneManager(osp.join(work_dir, "sofa_soccer_dragon_recon"))
+    manager = ColmapSceneManager(osp.join(work_dir, "sofa_soccer_dragon_recon"))
     for i, (pnt, rgb_cam_f)  in enumerate(zip([pnts1, pnts2], rgb_cam_fs)):
         rgb_cam = np.load(rgb_cam_f)
         rgb_cam = manager.get_extrnxs([idx1, idx2][i] + 1)
@@ -446,7 +449,7 @@ def scale_opt(output_dir, work_dir, colmap_dir):
     selector = ImagePointSelector([eimg_fs[idx1], eimg_fs[idx2]], end_fix="opt")
     pnts_2d = selector.select_points()
     
-    manager = ColSceneManager(colmap_dir)
+    manager = ColmapSceneManager(colmap_dir)
     rgb_extrs = [manager.get_extrnxs(idx1+1), manager.get_extrnxs(idx1+2)]
 
     def loss_fn(scale):
@@ -484,7 +487,7 @@ def scale_opt(output_dir, work_dir, colmap_dir):
 def save_blur_imgs(colmap_dir):
     import shutil
 
-    manager = ColSceneManager(colmap_dir)
+    manager = ColmapSceneManager(colmap_dir)
     img_fs = [manager.get_img_f(i+1) for i in range(len(manager))]
     fs, idxs, scores = calc_clearness_score(img_fs)
     
@@ -498,15 +501,17 @@ def save_blur_imgs(colmap_dir):
         shutil.copy(img_f, save_f)
 
 if __name__ == "__main__":
-    scene="black_seoul_b0_v3"
+    scene="boardroom_b1_v1"
     # scene="sofa_soccer_dragon"
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
     work_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}"
 
-    output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
-    select_triag_pnts(colmap_dir, output_dir, use_score=False, use_checker=True)
+    # output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
+    output_dir = osp.join(SAVE_DIR, "_".join(osp.basename(colmap_dir).split("_")[:-1]))
+    use_checker=True
+    select_triag_pnts(colmap_dir, output_dir, use_score=False, use_checker=use_checker)
     triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    select_3d_checker_coords(output_dir, use_checker=True)
+    select_3d_checker_coords(output_dir, use_checker=use_checker)
     find_scale(output_dir)
     # pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
     # proj_imgs(output_dir, colmap_dir)

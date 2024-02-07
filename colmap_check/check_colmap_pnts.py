@@ -4,7 +4,7 @@ import os.path as osp
 import cv2
 from functools import partial
 
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager, proj_3d_pnts
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager, proj_3d_pnts
 from stereo_calib.validate_stereo import load_relcam, load_objpnts
 from extrinsics_creator.create_rel_cam import apply_rel_cam
 from utils.misc import parallel_map
@@ -58,7 +58,7 @@ def main():
     objpnts = load_objpnts(obj_f, colmap_scene_f, calc_clear=True, use_checker=True)
 
 
-    manager = ColSceneManager(colmap_scene_f)
+    manager = ColmapSceneManager(colmap_scene_f)
     trig_eimg_fs = sorted(glob.glob(osp.join(colmap_scene_f, "trig_eimgs", "*.png")))
     _, _, ev_K, ev_D, R, T = load_relcam(rel_cam_f)
 

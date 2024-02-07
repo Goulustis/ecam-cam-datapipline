@@ -8,7 +8,7 @@ import shutil
 import glob
 import json
 
-from extrinsics_visualization.colmap_scene_manager import ColSceneManager
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 from format_data.utils import EventBuffer, read_triggers
 from format_data.eimg_maker import ev_to_img
 from format_data.slerp_qua import CameraSpline
@@ -34,7 +34,7 @@ def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=T
             
             events.drop_cache_by_t(st_t)
     
-    return eimgs, eimg_ts
+    return eimgs, np.array(eimg_ts)
 
 
 def load_scale_factor(ev_f):
@@ -45,8 +45,8 @@ def load_scale_factor(ev_f):
 
 
 if __name__ == "__main__":
-    MAKE_EIMG=False
-    scene = "black_seoul_b3_v3"
+    MAKE_EIMG=True
+    scene = "grad_lounge_b2_v1"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     t_shift = calc_t_shift(args.trigger_f)
     try:
-        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers + t_shift, exposure_time=t_shift*2, make_eimg=MAKE_EIMG)
+        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers + t_shift, exposure_time=5000, make_eimg=MAKE_EIMG)
     except Exception as e:
         shutil.rmtree(args.output)
         print(e)
@@ -94,7 +94,7 @@ if __name__ == "__main__":
             np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
 
         # manager = ColSceneManager(glob.glob(osp.join(args.workdir, "*recon*"))[0])
-        manager = ColSceneManager(osp.join(args.workdir, f"{scene}_recon"))
+        manager = ColmapSceneManager(osp.join(args.workdir, f"{scene}_recon"))
         colcam_extrinsics = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
         
         with open(osp.join(args.workdir, "rel_cam.json"), "r") as f:
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
         
         ecams = apply_rel_cam(rel_cam, colcam_extrinsics, SCALE)
-        ecams = create_interpolated_ecams(eimg_ts, triggers + t_shift, ecams)
+        # ecams = create_interpolated_ecams(eimg_ts, triggers + t_shift, ecams)
 
         create_and_write_camera_extrinsics(trig_ecam_dir, ecams, eimg_ts, np.array(rel_cam["M2"]), np.array(rel_cam["dist2"]))
         print("saved trig ecamset to:", trig_ecam_set_dir)
