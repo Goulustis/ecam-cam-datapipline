@@ -19,7 +19,7 @@ from extrinsics_creator.create_rel_cam import apply_rel_cam
 
 # def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
 def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=True):
-    eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.uint8)
+    eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.int8)
     eimg_ts = []
     for i, trigger in tqdm(enumerate(triggers), total=len(triggers), desc="making ev imgs"):
         st_t, end_t = max(trigger - exposure_time//2, 0), trigger + exposure_time//2
