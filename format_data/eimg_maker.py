@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from format_data.utils import EventBuffer
 
-def ev_to_img(x, y, p, e_thresh=0.15, img_size = None):
+def ev_to_eimg(x, y, p, e_thresh=0.15, img_size = None):
     """
     input:
         evs (np.array [type (t, x, y, p)]): events such that t in [t_st, t_st + time_delta]
@@ -79,7 +79,7 @@ def create_event_imgs(events:EventBuffer, triggers=None, time_delta=5000, create
                     if cond.sum() == 0:
                         break
 
-                    eimg = ev_to_img(curr_x[cond], curr_y[cond], curr_p[cond])
+                    eimg = ev_to_eimg(curr_x[cond], curr_y[cond], curr_p[cond])
                     eimgs.append(eimg)
 
                 eimgs_ids.append(id_cnt)
