@@ -8,27 +8,45 @@ import os.path as osp
 from tqdm import tqdm
 import multiprocessing as mp
 from multiprocessing import Pool
+import bisect
 
 
 class EventBuffer:
     def __init__(self, ev_f) -> None:
-        self.f = h5py.File(ev_f, "r")
-        self.x_f = self.f["x"]
-        self.y_f = self.f["y"]
-        self.p_f = self.f["p"]
-        self.t_f = self.f["t"]
+        self.ev_f = ev_f
+        self.x_f, self.y_f, self.p_f, self.t_f = self.load_events(self.ev_f)
 
         self.fs = [self.x_f, self.y_f, self.p_f, self.t_f]
 
         self.n_retrieve = 5000000
-        self.x_cache = np.array([self.x_f[0]])
-        self.y_cache = np.array([self.y_f[0]])
-        self.t_cache = np.array([self.t_f[0]])
-        self.p_cache = np.array([self.p_f[0]])
+        self._init_cache(0)
+
+
+    def _init_cache(self, idx=0):
+        self.x_cache = np.array([self.x_f[idx]])
+        self.y_cache = np.array([self.y_f[idx]])
+        self.t_cache = np.array([self.t_f[idx]])
+        self.p_cache = np.array([self.p_f[idx]])
 
         self.caches = [self.x_cache, self.y_cache, self.t_cache, self.p_cache]
 
-        self.curr_pnter = 1
+        self.curr_pnter = idx + 1
+    
+    def clear_cache(self):
+        self.x_cache = np.array([])
+        self.y_cache = np.array([])
+        self.t_cache = np.array([])
+        self.p_cache = np.array([])
+    
+    def load_events(self, ev_f):
+        self.f = h5py.File(ev_f, "r")
+        x_f = self.f["x"]
+        y_f = self.f["y"]
+        p_f = self.f["p"]
+        t_f = self.f["t"]
+
+        return x_f, y_f, p_f, t_f
+
     
     def update_cache(self):
         
@@ -46,12 +64,23 @@ class EventBuffer:
         self.p_cache = self.p_cache[cond]
         self.t_cache = self.t_cache[cond]
 
-    def retrieve_data(self, st_t, end_t):
+    def retrieve_data(self, st_t, end_t, is_far=False):
+        if (self.t_cache[0] > st_t) or is_far:
+            ## if st_t already out of range
+            idx = bisect.bisect(self.t_f, st_t)
+            idx = idx if ((st_t == self.t_f[idx]) or st_t <= self.t_f[0]) else idx - 1
+
+            assert idx >= 0, f"{st_t} not found!!"
+
+            self._init_cache(idx)
+
+
         while (self.curr_pnter < len(self.t_f)) and (self.t_cache[-1] <= end_t):
             self.update_cache()
         
         ret_cond = ( st_t<= self.t_cache) & (self.t_cache <= end_t)
-        ret_data = [self.t_cache[ret_cond], self.x_cache[ret_cond], self.y_cache[ret_cond], self.p_cache[ret_cond]]
+        ret_data = [self.t_cache[ret_cond], self.x_cache[ret_cond], 
+                    self.y_cache[ret_cond], self.p_cache[ret_cond]]
         self.drop_cache_by_cond(~ret_cond)
 
         return ret_data
