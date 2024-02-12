@@ -2,15 +2,19 @@ import numpy as np
 from tqdm import tqdm
 from format_data.utils import EventBuffer
 
-def ev_to_img(x, y, p, e_thresh=0.15):
+def ev_to_img(x, y, p, e_thresh=0.15, img_size = None):
     """
     input:
         evs (np.array [type (t, x, y, p)]): events such that t in [t_st, t_st + time_delta]
+        img_size (tuple [int, int]): image size in (h,w)
     return:
         event_img (np.array): of shape (h, w)
     """
     e_thresh = 0.15
-    h, w = 720, 1280
+    if img_size is None:
+        h, w = 720, 1280
+    else:
+        h, w = img_size
 
     pos_p = p==1
     neg_p = p==0
