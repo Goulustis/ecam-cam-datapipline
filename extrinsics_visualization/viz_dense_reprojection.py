@@ -32,13 +32,13 @@ import argparse
 #dense_dir = "/scratch-ssd/dense_workdir/halloween_b2_v1_recons/dense"
 #save_dir = "vid_frames"
 
-scene = "sofa_soccer_dragon"
-# ev_img_f = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set/eimgs/eimgs_1x.npy"
-ev_img_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/sofa_soccer_dragon/trig_ecamset/eimgs/eimgs_1x.npy"
+scene = "halloween_b2_v1"
+ev_img_f = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set/eimgs/eimgs_1x.npy"
+# ev_img_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/trig_ecamset/eimgs/eimgs_1x.npy"
 sparse_txt_dir = f"/scratch-ssd/dense_workdir/{scene}_recons/dense/txt_sparse"
 dense_dir = f"/scratch-ssd/dense_workdir/{scene}_recons/dense"
-# save_dir = f"{scene}_vid_frames"
-save_dir = f"trig_{scene}_vid_frames"
+save_dir = f"{scene}_vid_frames"
+# save_dir = f"trig_{scene}_vid_frames"
 
 
 
