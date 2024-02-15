@@ -1,7 +1,6 @@
 import sys
 sys.path.append(".")
 
-from viz.proj_pts3d_eimgs import read_colmap_cam
 import numpy as np
 import cv2
 import glob
@@ -10,6 +9,8 @@ from tqdm import tqdm
 import json
 import os.path as osp
 import os
+
+from stereo_calib.camera_utils import read_colmap_cam_param, read_prosphesee_ecam_param
 
 """
 This code is taken from https://github.com/bvnayak/stereo_calibration
@@ -72,19 +73,6 @@ def save_correspond_img(from_img, to_img, idx):
     save_img = np.concatenate([from_img, to_img], axis=1)
     cv2.imwrite(save_path, save_img)
 
-
-def read_colmap_cam_param(cam_path):
-    out = read_colmap_cam(cam_path, scale=1)
-
-    return out["M1"], out["d1"]
-
-def read_prosphesee_ecam_param(cam_path):
-    
-    with open(cam_path,"r") as f:
-        data = json.load(f)
-    
-    return np.array(data["camera_matrix"]['data']).reshape(3,3), \
-           np.array(data['distortion_coefficients']['data'])
 
 
 def linear_map(img):

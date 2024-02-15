@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import os.path as osp
 import glob
+from stereo_calib.camera_utils import read_colmap_cam
 
 
 SAVE_DIR = "./tmp/proj_imgs"
@@ -90,20 +91,6 @@ def create_undist_proj_img(img, intrinsics, distortion, extrinsics, pts3d, cam="
 
     plt.savefig(f'{cam}_proj.png')
 
-# reference:
-# https://github.com/colmap/colmap/blob/8e7093d22b324ce71c70d368d852f0ad91743808/src/colmap/sensor/models.h#L268C34-L268C34
-def read_colmap_cam(cam_path, scale=1):
-    # fx, fy, cx, cy, k1, k2, k3, k4
-    cam = read_cameras_binary(cam_path)
-    cam = cam[1]
-
-    fx, fy, cx, cy = cam.params[:4]*scale
-    int_mtx = np.array([[fx, 0, cx],
-                        [0, fy, cy],
-                        [0, 0, 1]]) 
-    
-    # cv2 model fx, fy, cx, cy, k1, k2, p1, p2
-    return {"M1": int_mtx, "d1":cam.params[4:]}
 
 def cv_draw_points(img, prj_pnts):
 
