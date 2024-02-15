@@ -10,7 +10,7 @@ import json
 
 from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 from format_data.utils import EventBuffer, read_triggers
-from format_data.eimg_maker import ev_to_img
+from format_data.eimg_maker import ev_to_eimg
 from format_data.slerp_qua import CameraSpline
 from format_data.utils import read_triggers, read_ecam_intrinsics
 from format_data.format_ecam_set import create_and_write_camera_extrinsics, calc_t_shift
@@ -28,7 +28,7 @@ def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=T
         if make_eimg:
             curr_t, curr_x, curr_y, curr_p = events.retrieve_data(st_t, end_t)
 
-            eimg = ev_to_img(curr_x, curr_y, curr_p)
+            eimg = ev_to_eimg(curr_x, curr_y, curr_p)
             # eimg[eimg != 0] = 255
             eimgs[i] = eimg
             
@@ -45,8 +45,8 @@ def load_scale_factor(ev_f):
 
 
 if __name__ == "__main__":
-    MAKE_EIMG=True
-    scene = "grad_lounge_b2_v1"
+    MAKE_EIMG=False
+    scene = "boardroom_b2_v1"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
