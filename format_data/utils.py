@@ -37,6 +37,8 @@ class EventBuffer:
         self.y_cache = np.array([])
         self.t_cache = np.array([])
         self.p_cache = np.array([])
+
+        self.curr_pnter = np.nan # points at no where
     
     def load_events(self, ev_f):
         self.f = h5py.File(ev_f, "r")
