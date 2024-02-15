@@ -87,46 +87,6 @@ def stereo_rectify_and_overlay(image1, image2, K1, D1, K2, D2, R, T, imageSize):
 
 
 
-def validate_in_stereo_space():
-    rgb_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/images"
-    eimg_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/events_imgs"
-    relcam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/rel_cam.json"
-    save_dir = osp.join(TMP_DIR, "stereo_space_reproj")
-
-    used_idxs = sorted([int(osp.basename(e).split(".")[0]) for e in glob.glob(osp.join(TMP_DIR, "stereo_calib_imgs", "*.png"))])
-    objpnts = get_calib_objpnts()
-
-    select_fn = lambda x, cond : [x[e] for e in cond]
-    rgb_fs = sorted(glob.glob(osp.join(rgb_dir, "*.png")))
-    eimg_fs = sorted(glob.glob(osp.join(eimg_dir, "*.png")))
-    rgb_fs = rgb_fs[:len(eimg_fs)]
-    # rgb_fs, eimg_fs = get_img_fs(rgb_dir, eimg_dir)
-    # rgb_fs, eimg_fs = select_fn(rgb_fs, used_idxs), select_fn(eimg_fs, used_idxs)
-    
-    rgb_K, rgb_D, ecam_K, ecam_D, R, T = load_relcam(relcam_f)
-
-    rgbs, eimgs = parallel_map(cv2.imread, rgb_fs, show_pbar=True, desc="loading rgbs"), parallel_map(cv2.imread, eimg_fs, show_pbar=True, desc="loading eimgs")
-    rgb_cams, cond = find_all_extrnsics(rgbs, rgb_K, rgb_D)
-
-    eimgs = [e for e, c in zip(eimgs, cond) if c]
-    ecams = apply_rel_cam({"R":R, "T":T}, rgb_cams, scale=1)
-
-    def proj_fn(inp):
-        img, extr = inp
-        return proj_3d_pnts(img, ecam_K, extr, objpnts, dist_coeffs=ecam_D)[1]
-
-    proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)))
-    os.makedirs(save_dir, exist_ok=True)
-    
-    def save_fn(inp):
-        img, idx = inp
-        cv2.imwrite(osp.join(save_dir, f"{str(idx).zfill(6)}.png"), img)
-    
-    parallel_map(save_fn, list(zip(proj_eimgs, [e for (e,c) in zip(used_idxs, cond) if c])), 
-                 show_pbar=True, desc="saving projected")
-    
-
-
 def find_chessboard_corners(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, pnts = cv2.findChessboardCorners(img, (5,8), None)
@@ -150,7 +110,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
             # idx1, idx2 = clear_idxs[0] + 1, 1730
             
         else:
-            idx1, idx2 = 39, 70
+            idx1, idx2 = 403, 314
 
         selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
         if not use_checker:
@@ -164,54 +124,6 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
     
     return colmap_pnts
 
-
-def validate_in_colmap_space():
-    colmap_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/calib_checker_recon"
-    # eimg_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/events_imgs"
-    eimg_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/trig_eimgs"
-    relcam_f = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_checker/rel_cam.json"
-    save_dir = osp.join(TMP_DIR, "colmap_stereo_proj")
-
-    manager = ColmapSceneManager(colmap_dir)
-    os.makedirs(save_dir, exist_ok=True)
-    rgb_K, rgb_D, ecam_K, ecam_D, R, T = load_relcam(relcam_f)
-
-    #################################### FOR NON-CHECKER CHECKS ################################################
-    # colmap_pnts_f = osp.join(TMP_DIR, "triangulated.npy")
-    # if osp.exists(colmap_pnts_f):
-    #     colmap_pnts = np.load(colmap_pnts_f)
-    # else:
-    #     idx1, idx2 = 1, 200
-    #     # selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
-    #     # pnts = selector.select_points()
-    #     pnts = [find_chessboard_corners(manager.get_img(idx1)), find_chessboard_corners(manager.get_img(idx2))]
-    #     colmap_pnts = triangulate_points(pnts, [manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)], 
-    #                                     {"intrinsics": rgb_K, "dist":rgb_D}, TMP_DIR)
-
-    idx1, idx2 = 200, 1500
-    pnts = [find_chessboard_corners(manager.get_img(idx1)), find_chessboard_corners(manager.get_img(idx2))]
-    colmap_pnts = triangulate_points(pnts, [manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)], 
-                                    {"intrinsics": rgb_K, "dist":rgb_D}, TMP_DIR)
-
-    grid_scale=0.39568848540866075/3
-    colcams = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
-    ecams = apply_rel_cam({"R":R, "T":T}, colcams, grid_scale)
-
-    def proj_fn(inp):
-        img, extr = inp
-        return proj_3d_pnts(img, ecam_K, extr, colmap_pnts, dist_coeffs=ecam_D)[1]
-
-    eimgs = parallel_map(cv2.imread, sorted(glob.glob(osp.join(eimg_dir, "*.png"))))
-    proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)))
-
-    
-    def save_fn(inp):
-        img, idx = inp
-        cv2.imwrite(osp.join(save_dir, f"{str(idx).zfill(6)}.png"), img)
-    
-    parallel_map(save_fn, list(zip(proj_eimgs, list(range(len(eimgs))))), 
-                 show_pbar=True, desc="saving projected")
-    
 
 def load_json_cam(cam_f):
     with open(cam_f, "r") as f:
@@ -239,15 +151,15 @@ def load_json_intr(cam_f):
 
 def validate_ecamset():
     # scene = "black_seoul_b3_v3"
-    scene = "boardroom_b1_v1"
+    scene = "boardroom_b2_v1"
 
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
     # os.remove(objpnts_f)
 
-    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
     # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
 
