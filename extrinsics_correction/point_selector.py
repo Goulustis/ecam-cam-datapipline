@@ -105,7 +105,7 @@ class ImagePointSelector:
     def select_checker(self):
         pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  self.images])
         self.points = pnts_2d
-        self.draw_points()
+        # self.draw_points()
 
         if self.save:
             self.save_all_points()
