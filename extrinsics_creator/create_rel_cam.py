@@ -27,7 +27,13 @@ def read_col_cam(extrinsics_path):
     return np.stack(cams)
 
 def apply_rel_cam(rel_cam, col_cams, scale):
-    # NOTE: R,T is world-to-cameras
+    """
+    Relcam(dict):
+        R (np.array [3,3])
+        T (np.array [1,3])
+    colcams: [np.array [4 ,4]] colmap world-to-cameras
+    
+    """
     R, T = rel_cam["R"], rel_cam["T"]
     T = T*scale
     new_cams = []
