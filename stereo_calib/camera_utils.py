@@ -62,6 +62,35 @@ def undistort_image(image, camera_matrix, dist_coeffs):
     return undist_img
 
 
+def poses_to_w2cs_hwf(poses):
+    """
+    takes LLFF poses and return to colmap c2w
+    poses (3x5xn)
+    """
+
+    inv = np.concatenate([poses[:,1:2,:], poses[:,0:1,:], -poses[:,2:3,:], poses[:, 3:]],1)
+    c2ws = inv[:3,:4,:]
+    dummy = np.zeros((1,4,1))
+    dummy[0,-1,0] = 1
+    c2ws = np.concatenate([c2ws, np.tile(dummy, (1, 1, c2ws.shape[-1]))]).transpose(2,0,1)
+    w2cs = np.linalg.inv(c2ws)
+
+    ## w2cs, hwf
+    return w2cs, poses[:,4:,:]
+
+
+
+def w2cs_hwf_to_poses(w2c_mats, hwf):
+    c2w_mats = np.linalg.inv(w2c_mats)
+    
+    poses = c2w_mats[:, :3, :4].transpose([1,2,0])
+    poses = np.concatenate([poses, hwf], 1)
+
+    poses = np.concatenate([poses[:, 1:2, :], poses[:, 0:1, :], -poses[:, 2:3, :], poses[:, 3:4, :], poses[:, 4:5, :]], 1)
+
+    return poses
+
+
 
 if __name__ == "__main__":
     colcam_path = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin"
