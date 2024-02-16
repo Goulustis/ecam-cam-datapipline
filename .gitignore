@@ -8,4 +8,5 @@
 *.npy
 *.pyc
 *.txt
+*.pt
 data/*
