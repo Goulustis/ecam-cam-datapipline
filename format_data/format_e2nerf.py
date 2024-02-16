@@ -171,13 +171,9 @@ def write_metadata(save_f, **kwargs):
 
 def main(work_dir, targ_dir, n_bins = 4):
     ######################## format rgb #####################
-    work_dir = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1"
-    targ_dir= "e2nerf_dev_boardroom_b2_v1"
-    n_bins = 4
-
     ev_f = osp.join(work_dir, "processed_events.h5")
     colmap_dir = osp.join(work_dir, osp.basename(work_dir) + "_recon") ## XXX_recons
-    colcam_set_dir = osp.join("/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data", osp.basename(work_dir), "colcam_set")
+    colcam_set_dir = osp.join(EDNERF_DATA_DIR, osp.basename(work_dir), "colcam_set")
 
     save_img_dir = osp.join(targ_dir, "images")
     os.makedirs(save_img_dir, exist_ok=True)
@@ -194,7 +190,9 @@ def main(work_dir, targ_dir, n_bins = 4):
 
     save_f = osp.join(targ_dir, "rgb_poses_bounds.npy")
     save_poses(save_f, new_rgb_poses, pts3d, perm)  # this'll calculate near far plane
-    shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
+
+    if osp.exists(osp.join(colcam_set_dir, "dataset.json")):
+        shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
     #########################################################
 
 
