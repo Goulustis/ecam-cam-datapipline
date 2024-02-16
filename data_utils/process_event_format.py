@@ -19,7 +19,7 @@ you can use 2 compression backends:
 import sys
 sys.path.append(".")
 
-from format_data.utils import read_triggers
+from format_data.format_utils import read_triggers
 
 from tqdm import tqdm
 import os.path as osp

@@ -10,7 +10,7 @@ import argparse
 import shutil
 import warnings
 
-from format_data.utils import read_triggers, read_ecam_intrinsics, read_events, EventBuffer
+from format_data.format_utils import read_triggers, read_ecam_intrinsics, read_events, EventBuffer
 from format_data.eimg_maker import create_event_imgs
 from format_data.slerp_qua import create_interpolated_ecams
 

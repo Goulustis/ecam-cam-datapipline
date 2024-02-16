@@ -3,7 +3,7 @@ sys.path.append(".")
 
 import numpy as np
 from tqdm import tqdm
-from format_data.utils import read_events, read_triggers
+from format_data.format_utils import read_events, read_triggers
 import os.path as osp
 
 

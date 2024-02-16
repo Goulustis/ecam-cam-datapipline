@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-from format_data.utils import EventBuffer
+from format_data.format_utils import EventBuffer
 
 def ev_to_eimg(x, y, p, e_thresh=0.15, img_size = None):
     """
