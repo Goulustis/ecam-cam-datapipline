@@ -91,8 +91,8 @@ class EventBuffer:
         cond = self.t_cache >= t
         self.drop_cache_by_cond(cond)
 
-    # def pass_end(self):
-    #     return self.curr_pnter >= len(self.t_f)
+    def valid_time(self, st_t):
+        return st_t < self.t_f[-1]
     
 
 
