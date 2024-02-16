@@ -358,8 +358,8 @@ def create_interpolated_ecams(eimg_ts, triggers, trig_ecams):
         return Rs, ts
     
     Rs, ts = split_extrnx(trig_ecams)
-    # cam_spline = CameraSpline(triggers, Rs, ts)
-    cam_spline = LanczosSpline(triggers, Rs, ts)
+    cam_spline = CameraSpline(triggers, Rs, ts)
+    # cam_spline = LanczosSpline(triggers, Rs, ts)
     int_ts, int_Rs =  cam_spline.interpolate(eimg_ts)
 
     if len(int_ts.shape) == 2:
