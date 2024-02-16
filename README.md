@@ -10,9 +10,9 @@ this repository will turn images and events into a dataset scene
 
 ## Instructions
 The scripts should be runned in the following sequence:
-1) find_relative_cam.sh      (finds relative camera position; checker board scene required)
-2) create_ecam_extrinsics.sh (finds colmap scene scale & event camera extrinsics based on relative camera position)
-3) format_dataset.sh         (creates one scene)
+1) scripts/find_relative_cam.sh      (finds relative camera position; checker board scene required)
+2) scripts/create_ecam_extrinsics.sh (finds colmap scene scale & event camera extrinsics based on relative camera position)
+3) scripts/format_dataset.sh         (creates one scene)
 
 ## input directory format
 Assume scene structure in this format (both general scene and checker board scene for calibration)
