@@ -1,8 +1,8 @@
 # NOTE: run find_relative_cam.sh to find rel_cam.json
 # This script will find the event camera extrinsics 
 
-REL_CAM_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/rel_cam.json                         # [REQUIRED] relative camera positions
-SCENE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker                                       # [REQUIRED] path to your scene (eg. some_path/scene)
+REL_CAM_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1/rel_cam.json                         # [REQUIRED] relative camera positions
+SCENE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1                                      # [REQUIRED] path to your scene (eg. some_path/scene)
 SCENE=$(basename $SCENE_PATH)
 PNT_3D_PATH=$SCENE_PATH/${SCENE}_recon/sparse/0/points3D.bin   # output of colmap
 IMG_PATH=$SCENE_PATH/${SCENE}_recon/sparse/0/images.bin        # output of colmap

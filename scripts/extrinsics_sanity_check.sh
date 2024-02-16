@@ -1,5 +1,6 @@
 source ~/.bashrc
-PREP_EVENT_F=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/halloween_b2_v1/processed_events.h5
+PREP_EVENT_F=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/phone_fan_sofa/processed_events.h5
+# PREP_EVENT_F=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/calib_checker/processed_events.h5
 # EVS_RECON_IMG_DIR=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/ev_imgs
 # EVS_IMG_TRIG_DIR=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/trig_eimgs
 # COLMAP_DIR=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1/atrium_b2_v1_recon
@@ -11,6 +12,10 @@ COLMAP_DIR=$(dirname $PREP_EVENT_F)/$(basename $(dirname $PREP_EVENT_F))_recon
 RELCAM_F=$(dirname $PREP_EVENT_F)/rel_cam.json
 TRIGGER_F=$(dirname $PREP_EVENT_F)/triggers.txt
 ECAM_F=$(dirname $PREP_EVENT_F)/e_cams.npy
+
+
+echo working on $(basename $(dirname $PREP_EVENT_F))
+
 # if [ ! -e "$EVS_RECON_IMG_DIR" ]; then
 #     WORKDIR=$(pwd)
 #     conda activate e2calib 
@@ -26,6 +31,7 @@ ECAM_F=$(dirname $PREP_EVENT_F)/e_cams.npy
 
 conda activate ecam_proc
 if [ ! -e "$EVS_IMG_TRIG_DIR" ]; then
+    echo making trig eimgs
     python extrinsics_visualization/make_trig_eimgs.py -i $PREP_EVENT_F \
                                                     -t $TRIGGER_F \
                                                     -o $EVS_IMG_TRIG_DIR
