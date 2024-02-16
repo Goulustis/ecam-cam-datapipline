@@ -53,13 +53,13 @@ def undistort_image(image, camera_matrix, dist_coeffs):
     mapx, mapy = cv2.initUndistortRectifyMap(camera_matrix, dist_coeffs, None, new_camera_matrix, (w, h), 5)
 
     # Remap the original image to the new undistorted image
-    undistorted_image = cv2.remap(image, mapx, mapy, cv2.INTER_LINEAR)
+    undist_img = cv2.remap(image, mapx, mapy, cv2.INTER_LINEAR)
 
     # Crop the image to the ROI
     x, y, w, h = roi
-    undistorted_image = undistorted_image[y:y+h, x:x+w]
+    undist_img = undist_img[y:y+h, x:x+w]
 
-    return undistorted_image
+    return undist_img
 
 
 
