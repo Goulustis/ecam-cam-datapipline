@@ -116,7 +116,7 @@ def make_eimgs(K, D, n_bins:int, cam_ts=None, ev_f:str=None, img_size=(720, 1280
 
     im_h, im_w = img_size
     cam_ts = cam_ts.reshape(-1, n_bins)
-    eimgs = np.zeros((len(cam_ts), n_bins, im_h, im_w), dtype=np.int8)
+    eimgs = np.zeros((len(cam_ts), n_bins - 1, im_h, im_w), dtype=np.int8)
 
     new_K, roi = cv2.getOptimalNewCameraMatrix(K, D, (im_w, im_h), 1, (im_w, im_h))
     mapx, mapy = cv2.initUndistortRectifyMap(K, D, None, new_K, (im_w, im_h), 5)
