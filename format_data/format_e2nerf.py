@@ -216,7 +216,7 @@ def main(work_dir, targ_dir, n_bins = 4):
     save_poses(save_f, ecam_poses, pts3d, perm)
 
     ## meta data, write evs img size, write num bins used
-    write_metadata(osp.join(targ_dir, "metadata.json"), evs_hw_imgsize=eimg_size, n_bins=n_bins)
+    write_metadata(osp.join(targ_dir, "metadata.json"), evs_hw=eimg_size, n_bins=n_bins)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
