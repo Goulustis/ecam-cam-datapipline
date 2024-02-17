@@ -206,8 +206,8 @@ def main(work_dir, targ_dir, n_bins = 4):
     ## shift the rgb camera to event camera
     scale = load_txt(osp.join(colmap_dir, "colmap_scale.txt"))
     rel_cam = read_rel_cam(osp.join(work_dir, "rel_cam.json"))
-    rgb_w2cs, hwfs = poses_to_w2cs_hwf(rgb_poses)
-    ecam_w2cs = apply_rel_cam(rel_cam, rgb_w2cs, scale)
+    new_rgb_w2cs, hwfs = poses_to_w2cs_hwf(new_rgb_poses)
+    ecam_w2cs = apply_rel_cam(rel_cam, new_rgb_w2cs, scale)
     ecam_poses = w2cs_hwf_to_poses(ecam_w2cs, hwfs)
 
     ecam_poses = update_poses_with_K(ecam_poses, new_ecam_K, eimg_size)
