@@ -75,14 +75,17 @@ def save_poses(basedir, poses, pts3d, perm):
     print( 'Depth stats', valid_z.min(), valid_z.max(), valid_z.mean() )
     
     save_arr = []
+    close_depths, inf_depths = [], []
     for i in perm:
         vis = vis_arr[:, i]
         zs = zvals[:, i]
         zs = zs[vis==1]
         close_depth, inf_depth = np.percentile(zs, .1), np.percentile(zs, 99.9)
-        # print( i, close_depth, inf_depth )
+        close_depths.append(close_depth), inf_depths.append(inf_depth)
         
-        save_arr.append(np.concatenate([poses[..., i].ravel(), np.array([close_depth, inf_depth])], 0))
+        # save_arr.append(np.concatenate([poses[..., i].ravel(), np.array([close_depth, inf_depth])], 0))
+    close_depths, inf_depths = np.array(close_depths), np.array(inf_depths)
+    save_arr = [np.concatenate([poses[..., i].ravel(), np.array([close_depths.mean(), inf_depths.mean()])], 0) for i in range(poses.shape[-1])]
     save_arr = np.array(save_arr)
     
     if ".npy" in basedir:
