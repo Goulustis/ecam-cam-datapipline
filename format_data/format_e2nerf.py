@@ -222,7 +222,12 @@ def main(work_dir, targ_dir, n_bins = 4):
     save_poses(save_f, ecam_poses, pts3d, perm)
 
     ## meta data, write evs img size, write num bins used
-    write_metadata(osp.join(targ_dir, "metadata.json"), evs_hw=eimg_size, n_bins=n_bins)
+    K_to_list = lambda x : [x[0,0], x[1,1], x[0,2], x[1,2]]
+    write_metadata(osp.join(targ_dir, "metadata.json"), evs_hw=eimg_size, n_bins=n_bins, 
+                                                        evs_K=K_to_list(new_ecam_K), 
+                                                        rgb_K=K_to_list(new_rgb_K),
+                                                        K=["fx", "fy", "cx", "cy"],
+                                                        n_valid_img=int(cond.sum()))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -232,7 +237,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.work_dir, args.targ_dir, args.n_bins)
-    # print(args.work_dir + "\n", args.targ_dir + "\n", args.n_bins)
     # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1",
     #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/boardroom_b2_v1",
     #      3)
