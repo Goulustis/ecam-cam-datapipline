@@ -227,7 +227,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_bins", type=int, default=4)
     args = parser.parse_args()
 
-    main(args._get_args, args.targ_dir, args.n_bins)
+    main(args.work_dir, args.targ_dir, args.n_bins)
     # print(args.work_dir + "\n", args.targ_dir + "\n", args.n_bins)
     # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1",
     #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/boardroom_b2_v1",
