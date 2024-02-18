@@ -44,6 +44,8 @@ def undistort_and_save_img(colmap_dir, save_dir, cond):
     new_K, roi = cv2.getOptimalNewCameraMatrix(K, D, (im_w, im_h), 1, (im_w, im_h))
     mapx, mapy = cv2.initUndistortRectifyMap(K, D, None, new_K, (im_w, im_h), 5)
     x, y, w, h = roi
+    new_K[0, 2] -= x
+    new_K[1, 2] -= y
 
     def undist_save_fn(inp):
         idx, img_f, cnd = inp
@@ -123,6 +125,8 @@ def make_eimgs(K, D, n_bins:int, cam_ts=None, ev_f:str=None, img_size=(720, 1280
     new_K, roi = cv2.getOptimalNewCameraMatrix(K, D, (im_w, im_h), 1, (im_w, im_h))
     mapx, mapy = cv2.initUndistortRectifyMap(K, D, None, new_K, (im_w, im_h), 5)
     x, y, w, h = roi
+    new_K[0, 2] -= x
+    new_K[1, 2] -= y
 
     if ev_f is None:
         return None, new_K, (h, w)
