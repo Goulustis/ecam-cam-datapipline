@@ -21,6 +21,8 @@ from format_data.format_utils import EventBuffer
 from format_data.eimg_maker import ev_to_eimg
 from extrinsics_creator.create_rel_cam import apply_rel_cam, read_rel_cam
 
+# np.set_printoptions(precision=4)
+
 
 COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin"
 PROPHESEE_CAM_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/intrinsics_prophesee.json"
@@ -91,7 +93,7 @@ def make_new_poses_bounds(poses, new_K, work_dir, img_hw, n_imgs, n_bins = 4):
     cam_ts = st_trigs[..., None] + t_steps[None]
     cam_ts = cam_ts.reshape(-1)
     poses = poses.transpose(2,0,1)
-    Rs, Ts = poses[:,:3,:3], poses[:, :3, 2]
+    Rs, Ts = poses[:,:3,:3], poses[:, :3, 3]
     spline = CameraSpline(mean_ts, Rs, Ts)
 
     interp_T, interp_R = spline.interpolate(cam_ts)
@@ -225,5 +227,8 @@ if __name__ == "__main__":
     parser.add_argument("--n_bins", type=int, default=4)
     args = parser.parse_args()
 
-    main(args.work_dir, args.targ_dir, args.n_bins)
-
+    main(args._get_args, args.targ_dir, args.n_bins)
+    # print(args.work_dir + "\n", args.targ_dir + "\n", args.n_bins)
+    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1",
+    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/boardroom_b2_v1",
+    #      3)
