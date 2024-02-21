@@ -193,6 +193,8 @@ def main(work_dir, targ_dir, n_bins = 4):
     new_rgb_poses, cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
                                               cv2.imread(img_f).shape[:2], n_imgs=cond.sum(), n_bins=n_bins)
 
+    mid_rgb_poses = update_poses_with_K(rgb_poses, new_rgb_K, cv2.imread(img_f).shape[:2])
+    save_poses(osp.join(targ_dir, "mid_rgb_poses_bounds.npy"), mid_rgb_poses, pts3d, perm)
 
     save_f = osp.join(targ_dir, "rgb_poses_bounds.npy")
     save_poses(save_f, new_rgb_poses, pts3d, perm)  # this'll calculate near far plane
