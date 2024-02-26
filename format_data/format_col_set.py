@@ -1,6 +1,6 @@
 # The code is directly taken from the github repo of nerfies
 
-from utils import read_triggers
+from format_utils import read_triggers
 
 """## Parse Data."""
 
