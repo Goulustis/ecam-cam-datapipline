@@ -20,6 +20,7 @@ from format_data.slerp_qua import CameraSpline
 from format_data.format_utils import EventBuffer
 from format_data.eimg_maker import ev_to_eimg
 from extrinsics_creator.create_rel_cam import apply_rel_cam, read_rel_cam
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 
 # np.set_printoptions(precision=4)
 
@@ -32,11 +33,16 @@ def load_txt(scale_f):
     with open(scale_f, "r") as f:
         return float(f.read())
 
-def undistort_and_save_img(colmap_dir, save_dir, cond):
+def undistort_and_save_img(colmap_dir, save_dir, cond, colmap_manager:ColmapSceneManager = None):
     """
     cond (bools)
     """
     img_fs = sorted(glob.glob(osp.join(colmap_dir, "images", "*.png")))
+
+    if colmap_manager is not None:
+        cond = colmap_manager.get_found_cond(len(img_fs))
+        img_fs = [img_f for (b, img_f) in zip(cond, img_fs) if b]
+
     cam_bin_f = osp.join(colmap_dir, "sparse/0/cameras.bin")
     K, D = read_colmap_cam_param(cam_bin_f)
 
@@ -192,9 +198,11 @@ def main(work_dir, targ_dir, n_bins = 4):
 
     save_img_dir = osp.join(targ_dir, "images")
     os.makedirs(save_img_dir, exist_ok=True)
+    colmap_manager = ColmapSceneManager(colmap_dir)
+
     _, trig_end = load_st_end_trigs(work_dir)
     cond = trig_end <= EventBuffer(ev_f).t_f[-1]
-    new_rgb_K = undistort_and_save_img(colmap_dir, save_img_dir, cond)
+    new_rgb_K = undistort_and_save_img(colmap_dir, save_img_dir, cond, colmap_manager)
 
     rgb_poses, pts3d, perm = load_colmap_data(colmap_dir)
 
