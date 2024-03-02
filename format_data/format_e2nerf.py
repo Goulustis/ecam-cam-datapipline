@@ -40,8 +40,10 @@ def undistort_and_save_img(colmap_dir, save_dir, cond, colmap_manager:ColmapScen
     img_fs = sorted(glob.glob(osp.join(colmap_dir, "images", "*.png")))
 
     if colmap_manager is not None:
-        cond = colmap_manager.get_found_cond(len(img_fs))
-        img_fs = [img_f for (b, img_f) in zip(cond, img_fs) if b]
+        col_cond = colmap_manager.get_found_cond(len(img_fs))
+        cond = cond & col_cond
+    
+    img_fs = [img_f for (b, img_f) in zip(cond, img_fs) if b]
 
     cam_bin_f = osp.join(colmap_dir, "sparse/0/cameras.bin")
     K, D = read_colmap_cam_param(cam_bin_f)
@@ -54,15 +56,14 @@ def undistort_and_save_img(colmap_dir, save_dir, cond, colmap_manager:ColmapScen
     new_K[1, 2] -= y
 
     def undist_save_fn(inp):
-        idx, img_f, cnd = inp
-        if cnd:
-            img = cv2.imread(img_f)
-            undist_img = cv2.remap(img, mapx, mapy, cv2.INTER_LINEAR)
-            undist_img = undist_img[y:y+h, x:x+w]
-            save_f = osp.join(save_dir, str(idx).zfill(5) + ".png")
-            cv2.imwrite(save_f, undist_img)
+        idx, img_f = inp
+        img = cv2.imread(img_f)
+        undist_img = cv2.remap(img, mapx, mapy, cv2.INTER_LINEAR)
+        undist_img = undist_img[y:y+h, x:x+w]
+        save_f = osp.join(save_dir, str(idx).zfill(5) + ".png")
+        cv2.imwrite(save_f, undist_img)
 
-    parallel_map(undist_save_fn, list(zip(list(range(len(img_fs))), img_fs, cond)), show_pbar=True, desc="undistorting and saving")
+    parallel_map(undist_save_fn, list(zip(list(range(len(img_fs))), img_fs)), show_pbar=True, desc="undistorting and saving")
     
     return new_K
 
