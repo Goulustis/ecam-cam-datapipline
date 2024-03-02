@@ -14,6 +14,7 @@ from extrinsics_correction.manual_scale_finding import pnp_extrns, triangulate_p
 from extrinsics_creator.create_rel_cam import apply_rel_cam
 from utils.misc import parallel_map
 from utils.images import calc_clearness_score
+from stereo_calib.data_scene_manager import MANAGER_DICT
 
 TMP_DIR = "./tmp"
 
@@ -110,7 +111,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
             # idx1, idx2 = clear_idxs[0] + 1, 1730
             
         else:
-            idx1, idx2 = 403, 314
+            idx1, idx2 = 19, 55
 
         selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
         if not use_checker:
@@ -150,16 +151,16 @@ def load_json_intr(cam_f):
 
 
 def validate_ecamset():
-    # scene = "black_seoul_b3_v3"
-    scene = "boardroom_b2_v1"
+    scene = "halloween_b2_v1"
+    # scene = "playground_v6"
 
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
     # os.remove(objpnts_f)
 
     # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
-    ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
 
@@ -168,33 +169,23 @@ def validate_ecamset():
                       "trig_ecamset":osp.join(TMP_DIR, f"{scene}_trig_ecamset_proj")}
 
     save_dir = save_dir_dicts[osp.basename(ecamset)]
-    # save_dir = osp.join(TMP_DIR, f"{scene}_ecamset_3x_proj")
 
     os.makedirs(save_dir, exist_ok=True)
-    cam_fs = sorted(glob.glob(osp.join(ecamset, "camera", "*.json")))
-
-    if "colcam_set" in ecamset:
-        eimgs = sorted(glob.glob(osp.join(ecamset, "rgb", "1x", "*.png")))
-    else:
-        eimgs = np.load(osp.join(ecamset, "eimgs", "eimgs_1x.npy"), "r")
-    # eimgs = sorted(glob.glob(osp.join("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/black_seoul_b3_v3/events_imgs", "*.png")))
-
-    ecam_K, ecam_D = load_json_intr(cam_fs[0])
-    ecams = parallel_map(load_json_cam, cam_fs, show_pbar=True, desc="loading json cams") #[load_json_cam(f) for f in cam_fs]
+    
+    manager = MANAGER_DICT[osp.basename(ecamset)](ecamset)
+    eimgs = parallel_map(manager.get_img, list(range(len(manager))), show_pbar=True, desc="loading imgs")
+    ecam_K, ecam_D = manager.get_intrnxs()
+    ecams = parallel_map(manager.get_extrnxs, list(range(len(manager))), show_pbar=True, desc="loading evs extrinsics")
 
 
-    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False, use_checker=False)
+
+    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=True, use_checker=False)
 
     def proj_fn(inp):
         img, extr = inp
         return proj_3d_pnts(img, ecam_K, extr, objpnts, dist_coeffs=ecam_D)[1]
 
 
-    if "colcam_set" in ecamset:
-        eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
-    else:
-        eimgs = parallel_map(lambda x : np.stack([(x != 0).astype(np.uint8) * 255]*3, axis=-1), eimgs, show_pbar=True, desc="creating eimgs")
-    # eimgs = parallel_map(lambda x : cv2.imread(x), eimgs, show_pbar=True, desc="creating eimgs")
     proj_eimgs = parallel_map(proj_fn, list(zip(eimgs, ecams)), show_pbar=True, desc="projecting points")
 
     
