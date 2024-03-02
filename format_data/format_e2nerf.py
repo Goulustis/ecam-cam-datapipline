@@ -25,7 +25,8 @@ from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 # np.set_printoptions(precision=4)
 
 
-COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin"
+# COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin"
+COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_new_v4_recons/sparse/0/cameras.bin"
 PROPHESEE_CAM_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/intrinsics_prophesee.json"
 EDNERF_DATA_DIR="/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data"
 
