@@ -33,15 +33,11 @@ def load_txt(scale_f):
     with open(scale_f, "r") as f:
         return float(f.read())
 
-def undistort_and_save_img(colmap_dir, save_dir, cond, colmap_manager:ColmapSceneManager = None):
+def undistort_and_save_img(colmap_dir, save_dir, cond):
     """
     cond (bools)
     """
     img_fs = sorted(glob.glob(osp.join(colmap_dir, "images", "*.png")))
-
-    if colmap_manager is not None:
-        col_cond = colmap_manager.get_found_cond(len(img_fs))
-        cond = cond & col_cond
     
     img_fs = [img_f for (b, img_f) in zip(cond, img_fs) if b]
 
@@ -191,6 +187,11 @@ def write_metadata(save_f, **kwargs):
     with open(save_f, "w") as f:
         json.dump(kwargs, f, indent=2)
 
+
+# def make_dataset_json(colmap_manager: ColmapSceneManager):
+
+
+
 def main(work_dir, targ_dir, n_bins = 4):
     ######################## format rgb #####################
     ev_f = osp.join(work_dir, "processed_events.h5")
@@ -203,7 +204,9 @@ def main(work_dir, targ_dir, n_bins = 4):
 
     _, trig_end = load_st_end_trigs(work_dir)
     cond = trig_end <= EventBuffer(ev_f).t_f[-1]
-    new_rgb_K = undistort_and_save_img(colmap_dir, save_img_dir, cond, colmap_manager)
+    col_cond = colmap_manager.get_found_cond(len(cond))
+    cond = col_cond & cond
+    new_rgb_K = undistort_and_save_img(colmap_dir, save_img_dir, cond)
 
     rgb_poses, pts3d, perm = load_colmap_data(colmap_dir)
 
@@ -219,6 +222,8 @@ def main(work_dir, targ_dir, n_bins = 4):
 
     if osp.exists(osp.join(colcam_set_dir, "dataset.json")):
         shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
+    else:
+        dataset_json = make_dataset_json(colmap_manager)
     #########################################################
 
 
