@@ -126,28 +126,6 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
     return colmap_pnts
 
 
-def load_json_cam(cam_f):
-    with open(cam_f, "r") as f:
-        data = json.load(f)
-        R, pos = np.array(data["orientation"]), np.array(data["position"])
-        t = -(pos@R.T).T
-        t = t.reshape(-1,1)
-    
-    return np.concatenate([R, t], axis=-1)
-
-
-def load_json_intr(cam_f):
-    with open(cam_f, "r") as f:
-        data = json.load(f)
-        fx = fy = data["focal_length"]
-        cx, cy = data["principal_point"]
-        k1, k2, k3 = data["radial_distortion"]
-        p1, p2 = data["tangential_distortion"]
-    
-    return np.array([[fx, 0, cx],
-                    [0,   fy, cy],
-                    [0, 0, 1]]), (k1,k2,p1,p2)
-
 
 
 def validate_ecamset():
@@ -171,7 +149,7 @@ def validate_ecamset():
     save_dir = save_dir_dicts[osp.basename(ecamset)]
 
     os.makedirs(save_dir, exist_ok=True)
-    
+
     manager = MANAGER_DICT[osp.basename(ecamset)](ecamset)
     eimgs = parallel_map(manager.get_img, list(range(len(manager))), show_pbar=True, desc="loading imgs")
     ecam_K, ecam_D = manager.get_intrnxs()
