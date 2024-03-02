@@ -65,6 +65,15 @@ def load_st_end_trigs(work_dir):
     st_trig_f = osp.join(work_dir, "st_triggers.txt")
     end_trig_f = osp.join(work_dir, "end_triggers.txt")
     st_trigs, end_trigs = np.loadtxt(st_trig_f), np.loadtxt(end_trig_f)
+
+    trig_f = osp.join(work_dir, "triggers.txt")
+    trigs = np.loadtxt(trig_f)
+    assert np.abs(trigs[0] - st_trigs[0]) < 1e-8, "trigs need to be same as st_trig because camera trigger noise fix"
+
+    exposure_t = end_trigs[0] - st_trigs[0]
+    st_trigs = trigs
+    end_trigs = st_trigs + exposure_t
+
     return st_trigs, end_trigs
 
 
