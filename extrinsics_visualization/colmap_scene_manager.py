@@ -306,6 +306,14 @@ class ColmapSceneManager:
     def get_img_id(self, img_idx):
         img_f = self.get_img_f(img_idx)
         return osp.basename(img_f).split(".")[0]
+    
+
+    def get_found_cond(self, n_size):
+        keys = sorted(list(int(k) for k in self.images.keys()))
+        keys = np.array([k - 1 for k in keys if k - 1 < n_size]).astype(np.int32) # subtract 1 since colmap idx starts at 1
+        cond = np.zeros(n_size, dtype=bool)
+        cond[keys] = True
+        return cond
 
 class ColcamSetManager:
 
