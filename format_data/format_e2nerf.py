@@ -17,7 +17,7 @@ from stereo_calib.camera_utils import (read_colmap_cam_param,
                                        poses_to_w2cs_hwf,
                                        w2cs_hwf_to_poses)
 from format_data.slerp_qua import CameraSpline
-from format_data.format_utils import EventBuffer
+from format_data.format_utils import EventBuffer, find_clear_val_test
 from format_data.eimg_maker import ev_to_eimg
 from extrinsics_creator.create_rel_cam import apply_rel_cam, read_rel_cam
 from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
@@ -188,7 +188,25 @@ def write_metadata(save_f, **kwargs):
         json.dump(kwargs, f, indent=2)
 
 
-# def make_dataset_json(colmap_manager: ColmapSceneManager):
+def make_dataset_json(colmap_manager: ColmapSceneManager, cond):
+    ignore_last = len(colmap_manager.image_ids) - cond.sum()
+
+    all_ids = np.arange(cond.sum()).tolist()
+    all_ids = [int(e) for e in all_ids]
+    val_ids, test_ids = find_clear_val_test(colmap_manager, ignore_last=ignore_last)
+    train_ids = sorted(set(all_ids) - set(val_ids + test_ids))
+
+    dataset_json = {
+        "counts": len(all_ids),
+        "num_exemplars": len(train_ids),
+        "ids": all_ids,
+        "train_ids": train_ids,
+        "val_ids": val_ids,
+        "test_ids": test_ids
+    }
+    return dataset_json
+
+
 
 
 
@@ -223,7 +241,10 @@ def main(work_dir, targ_dir, n_bins = 4):
     if osp.exists(osp.join(colcam_set_dir, "dataset.json")):
         shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
     else:
+        targ_dataset_json_f = osp.join(targ_dir, "dataset.json")
         dataset_json = make_dataset_json(colmap_manager)
+        with open(targ_dataset_json_f, "w") as f:
+            json.dump(dataset_json, f, indent=2)
     #########################################################
 
 
