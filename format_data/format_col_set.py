@@ -212,7 +212,7 @@ def parallel_map(f, iterable, max_threads=None, show_pbar=False, desc="", **kwar
     return list(results)
 
 
-def find_clear_val_test(scene_manager):
+def find_clear_val_test(scene_manager:SceneManager):
     # Get list of images in folder
     
     ignore_first = 40
