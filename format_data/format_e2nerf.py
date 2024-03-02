@@ -117,6 +117,7 @@ def make_eimgs(K, D, n_bins:int, cam_ts=None, ev_f:str=None, img_size=(720, 1280
 
     ev_f: if None, calculate new_K and return 
     """
+    print("startingt to make eimg")
 
     im_h, im_w = img_size
     cam_ts = cam_ts.reshape(-1, n_bins)
@@ -167,7 +168,6 @@ def make_eimgs(K, D, n_bins:int, cam_ts=None, ev_f:str=None, img_size=(720, 1280
     
     eimgs = eimgs[:n_frames, :, y:y+h, x:x+w]
     
-    # TODO: FIGURE OUT WHY E2NERF FLATTEN THIS
     return eimgs.reshape(*eimgs.shape[:2], -1), new_K, (h, w)
 
 
@@ -239,6 +239,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.work_dir, args.targ_dir, args.n_bins)
-    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/boardroom_b2_v1",
-    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/boardroom_b2_v1",
-    #      3)
+    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/grad_lounge_b2_v1",
+    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/grad_lounge_b2_v1",
+    #      args.n_bins)
