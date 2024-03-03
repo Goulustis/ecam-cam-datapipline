@@ -157,7 +157,7 @@ def find_clear_val_test(scene_manager, ignore_first=0, ignore_last = 5):
     # Get list of images in folder
 
     
-    ret_idxs = list(range(scene_manager.image_ids))[ignore_first:-ignore_last]
+    ret_idxs = list(range(len(scene_manager.image_ids)))[ignore_first:-ignore_last]
     img_idxs = scene_manager.image_ids[ignore_first:-ignore_last]
 
     # Load images
