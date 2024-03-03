@@ -106,7 +106,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
         manager = ColmapSceneManager(colmap_dir)
         rgb_K, rgb_D = manager.get_intrnxs()
         if calc_clear:
-            clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
+            clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(635)])[1]
             idx1, idx2 = clear_idxs[0] + 1, clear_idxs[0 + 3] + 1
             # idx1, idx2 = clear_idxs[0] + 1, 1730
             
@@ -129,16 +129,16 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
 
 
 def validate_ecamset():
-    scene = "halloween_b2_v1"
-    # scene = "playground_v6"
+    # scene = "halloween_b2_v1"
+    scene = "cs_building_v6"
 
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
     # os.remove(objpnts_f)
 
     # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/ecam_set"
-    ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
-    # ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
+    # ecamset = f"/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/{scene}/colcam_set"
+    ecamset = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/trig_ecamset"
 
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
 
@@ -150,14 +150,13 @@ def validate_ecamset():
 
     os.makedirs(save_dir, exist_ok=True)
 
+
+    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=False, use_checker=False)
+
     manager = MANAGER_DICT[osp.basename(ecamset)](ecamset)
     eimgs = parallel_map(manager.get_img, list(range(len(manager))), show_pbar=True, desc="loading imgs")
     ecam_K, ecam_D = manager.get_intrnxs()
     ecams = parallel_map(manager.get_extrnxs, list(range(len(manager))), show_pbar=True, desc="loading evs extrinsics")
-
-
-
-    objpnts = load_objpnts(objpnts_f, colmap_dir, calc_clear=True, use_checker=False)
 
     def proj_fn(inp):
         img, extr = inp
@@ -169,8 +168,16 @@ def validate_ecamset():
     
     def save_fn(inp):
         img, idx = inp
+        # Specify the font and color for the text
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        color = (0, 0, 255)  # BGR for red
+        font_scale = 1
+        thickness = 2
+        cv2.putText(img, str(idx), (10, 30), font, font_scale, color, thickness)
+        
+        # Save the image
         flag = cv2.imwrite(osp.join(save_dir, f"{str(idx).zfill(6)}.png"), img)
-        assert flag, "save img failed"
+        assert flag, "Save img failed"
     
     parallel_map(save_fn, list(zip(proj_eimgs, list(range(len(eimgs))))), 
                  show_pbar=True, desc="saving projected")
@@ -180,8 +187,8 @@ def validate_ecamset():
     with contextlib.suppress(FileNotFoundError):
         os.remove(save_f)
 
-    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 7500 {save_f}")
-    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 6050 {save_f}")
+    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 7500 {save_f}")
+    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 6050 {save_f}")
     print("saved to", save_f)
 
 
