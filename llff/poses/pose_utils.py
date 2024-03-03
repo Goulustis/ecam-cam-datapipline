@@ -60,6 +60,9 @@ def save_poses(basedir, poses, pts3d, perm):
         pts_arr.append(pts3d[k].xyz)
         cams = [0] * poses.shape[-1]
         for ind in pts3d[k].image_ids:
+            if ind >= len(cams):
+                continue
+
             if len(cams) < ind - 1:
                 print('ERROR: the correct camera poses for current points cannot be accessed')
                 return
@@ -77,15 +80,20 @@ def save_poses(basedir, poses, pts3d, perm):
     save_arr = []
     close_depths, inf_depths = [], []
     for i in perm:
+        if i >= len(cams):
+            continue
         vis = vis_arr[:, i]
         zs = zvals[:, i]
         zs = zs[vis==1]
+        if len(zs) == 0:
+            continue
         close_depth, inf_depth = np.percentile(zs, .1), np.percentile(zs, 99.9)
         close_depths.append(close_depth), inf_depths.append(inf_depth)
         
         # save_arr.append(np.concatenate([poses[..., i].ravel(), np.array([close_depth, inf_depth])], 0))
     close_depths, inf_depths = np.array(close_depths), np.array(inf_depths)
-    save_arr = [np.concatenate([poses[..., i].ravel(), np.array([close_depths.mean(), inf_depths.mean()])], 0) for i in range(poses.shape[-1])]
+    save_arr = [np.concatenate([poses[..., i].ravel(), np.array([max(0.01, close_depths[close_depths > 0].mean() - close_depths[close_depths > 0].std()), 
+                                                                 inf_depths.mean() + inf_depths.std()])], 0) for i in range(poses.shape[-1])]
     save_arr = np.array(save_arr)
     
     if ".npy" in basedir:
