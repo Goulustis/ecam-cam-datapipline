@@ -166,6 +166,17 @@ class ColmapSceneManager:
     def set_sample_method(self, method):
         self.sample_method = method
         self.sample_pnt_fnc = self.sample_pnt_fnc_dic[self.sample_method]
+    
+    @property
+    def image_ids(self):
+        return sorted(self.images.keys())
+    
+    def load_image(self, img_idx):
+        img_cam = self.images[img_idx]
+        img_name = img_cam.name # get img_name from img_cam
+        img_f = osp.join(self.img_dir, img_name)
+        return cv2.imread(img_f)
+
 
     def sample_pnts_reliable(self, img_idx=None, sample_n_points=16):
         # pnt_idxs = self.images[img_idx].point3D_ids
