@@ -94,13 +94,13 @@ def update_poses_with_K(poses, K, img_hw):
 
 
 
-def make_new_poses_bounds(poses, new_K, work_dir, img_hw, n_imgs, n_bins = 4):
+def make_new_poses_bounds(poses, new_K, work_dir, img_hw, cond, n_bins = 4):
     """
     n_bins = number of bins as in 
     """
     st_trigs, end_trigs = load_st_end_trigs(work_dir)
+    st_trigs, end_trigs = st_trigs[cond], end_trigs[cond]
     mean_ts = (st_trigs + end_trigs) * 0.5
-    mean_ts = mean_ts[:n_imgs]
 
     delta_t = (end_trigs[0] - st_trigs[0])/(n_bins - 1)
     t_steps = delta_t*np.array(list(range(n_bins)))
@@ -225,13 +225,14 @@ def main(work_dir, targ_dir, n_bins = 4):
     cond = trig_end <= EventBuffer(ev_f).t_f[-1]
     col_cond = colmap_manager.get_found_cond(len(cond))
     cond = col_cond & cond
+    cond[np.where(cond)[0][-1]] = False
     new_rgb_K = undistort_and_save_img(colmap_dir, save_img_dir, cond)
 
     rgb_poses, pts3d, perm = load_colmap_data(colmap_dir)
 
     img_f = glob.glob(osp.join(save_img_dir, "*.png"))[0]
     new_rgb_poses, cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
-                                              cv2.imread(img_f).shape[:2], n_imgs=cond.sum(), n_bins=n_bins)
+                                              cv2.imread(img_f).shape[:2], cond=cond, n_bins=n_bins)
 
     mid_rgb_poses = update_poses_with_K(rgb_poses, new_rgb_K, cv2.imread(img_f).shape[:2])
     save_poses(osp.join(targ_dir, "mid_rgb_poses_bounds.npy"), mid_rgb_poses, pts3d, perm)
@@ -243,7 +244,7 @@ def main(work_dir, targ_dir, n_bins = 4):
         shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
     else:
         targ_dataset_json_f = osp.join(targ_dir, "dataset.json")
-        dataset_json = make_dataset_json(colmap_manager)
+        dataset_json = make_dataset_json(colmap_manager, cond)
         with open(targ_dataset_json_f, "w") as f:
             json.dump(dataset_json, f, indent=2)
     #########################################################
@@ -284,6 +285,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.work_dir, args.targ_dir, args.n_bins)
-    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/grad_lounge_b2_v1",
-    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/grad_lounge_b2_v1",
+    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/playground_v6",
+    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/playground_v6",
     #      args.n_bins)
