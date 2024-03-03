@@ -18,11 +18,15 @@ from format_data.slerp_qua import create_interpolated_ecams
 from extrinsics_creator.create_rel_cam import apply_rel_cam
 
 # def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
-def create_eimg_by_triggers(events, triggers, exposure_time = 14980, make_eimg=True):
+def create_eimg_by_triggers(events:EventBuffer, triggers, exposure_time = 14980, make_eimg=True):
     eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.int8)
     eimg_ts = []
     for i, trigger in tqdm(enumerate(triggers), total=len(triggers), desc="making ev imgs"):
         st_t, end_t = max(trigger - exposure_time//2, 0), trigger + exposure_time//2
+
+        if st_t > events.t_f[-1]:
+            break
+
         eimg_ts.append(st_t + exposure_time//2)
 
         if make_eimg:
@@ -45,8 +49,8 @@ def load_scale_factor(ev_f):
 
 
 if __name__ == "__main__":
-    MAKE_EIMG=False
-    scene = "boardroom_b2_v1"
+    MAKE_EIMG=True
+    scene = "cs_building_v6"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
@@ -62,6 +66,9 @@ if __name__ == "__main__":
 
     events = EventBuffer(args.input)
     triggers = read_triggers(args.trigger_f)
+    manager = ColmapSceneManager(osp.join(args.workdir, f"{scene}_recon"))
+    colcam_extrinsics = manager.get_all_extrnxs()
+    triggers = triggers[manager.get_found_cond(len(triggers))]
 
     os.makedirs(args.output, exist_ok=True)
 
@@ -73,11 +80,11 @@ if __name__ == "__main__":
         print(e)
         assert 0
 
-    if MAKE_EIMG:
-        for i, eimg in tqdm(enumerate(eimgs), total=len(eimgs), desc="saving eimgs"):
-            save_f = osp.join(args.output, f"{str(i).zfill(6)}.png")
-            write_flag = cv2.imwrite(save_f, eimg)
-        assert write_flag, "write image failed"
+    # if MAKE_EIMG:
+    #     for i, eimg in tqdm(enumerate(eimgs), total=len(eimgs), desc="saving eimgs"):
+    #         save_f = osp.join(args.output, f"{str(i).zfill(6)}.png")
+    #         write_flag = cv2.imwrite(save_f, eimg)
+    #     assert write_flag, "write image failed"
     
 
     if args.workdir is not None:
@@ -93,9 +100,6 @@ if __name__ == "__main__":
         if MAKE_EIMG:
             np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
 
-        # manager = ColSceneManager(glob.glob(osp.join(args.workdir, "*recon*"))[0])
-        manager = ColmapSceneManager(osp.join(args.workdir, f"{scene}_recon"))
-        colcam_extrinsics = [manager.get_extrnxs(i + 1) for i in range(len(manager))]
         
         with open(osp.join(args.workdir, "rel_cam.json"), "r") as f:
             rel_cam = json.load(f)
