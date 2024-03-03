@@ -13,6 +13,7 @@ import warnings
 from format_data.format_utils import read_triggers, read_ecam_intrinsics, read_events, EventBuffer
 from format_data.eimg_maker import create_event_imgs
 from format_data.slerp_qua import create_interpolated_ecams
+from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 
 
 def make_camera(ext_mtx, intr_mtx, dist):
@@ -129,15 +130,18 @@ def calc_time_delta(triggers, min_mult=3):
     return np.ceil(delta_t/n_mult).astype(int)
 
 
-def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, create_eimgs):
+def format_ecam_data(data_path, ecam_intrinsics_path, targ_dir, trig_path, create_eimgs, colmap_dir):
     os.makedirs(targ_dir, exist_ok=True)
     event_path = osp.join(data_path, "processed_events.h5") 
     ecam_path = osp.join(data_path, "e_cams.npy")  ## trigger extrinsics
 
     # read files
+    manager = ColmapSceneManager(colmap_dir)
     trig_ecams = np.load(ecam_path) # extrinsics at trigger times
     intr_mtx, dist = read_ecam_intrinsics(ecam_intrinsics_path)
     triggers = read_triggers(trig_path)
+    cond = manager.get_found_cond(len(triggers))
+    triggers = triggers[cond]
 
     ## create event images
     events = EventBuffer(event_path)
@@ -180,9 +184,10 @@ if __name__ == "__main__":
     parser.add_argument("--scene_path", help="the path to the dataset format described in readme", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{dataset}")
     parser.add_argument("--relcam_path", help="path to rel_cam.json containing relative camera info", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{dataset}/rel_cam.json")
     parser.add_argument("--trigger_path", help="path to ecam triggers only rgb open shutter ones", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{dataset}/triggers.txt")
+    parser.add_argument("--colmap_dir", help="directory to xxx_recons")
 
     parser.add_argument("--targ_dir", help="location to save the formatted dataset", default="debug")
     parser.add_argument("--create_eimgs", choices=["True", "False"], default="True")
     args = parser.parse_args()
 
-    format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path, args.create_eimgs)
+    format_ecam_data(args.scene_path, args.relcam_path, args.targ_dir, args.trigger_path, args.create_eimgs, args.colmap_dir)
