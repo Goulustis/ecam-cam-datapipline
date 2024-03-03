@@ -58,7 +58,7 @@ class ColcamSceneManager:
         return load_json_cam(self.cam_fs[idx])
 
     def __len__(self):
-        return len(self.img_fs)
+        return len(self.cam_fs)
 
 
 class EcamSceneManager(ColcamSceneManager):
@@ -67,14 +67,16 @@ class EcamSceneManager(ColcamSceneManager):
         self.cam_fs = sorted(glob.glob(osp.join(self.data_dir, "camera", "*.json")))
         self.eimgs = np.load(osp.join(self.data_dir, "eimgs", "eimgs_1x.npy"), "r")
 
+    def __len__(self):
+        return min(len(self.cam_fs), len(self.eimgs))
+
     def get_img(self, idx):
         img = np.stack([(self.eimgs[idx] != 0).astype(np.uint8) * 255]*3, axis=-1)
         return img
 
-    def __len__(self):
-        return len(self.eimgs)
 
 
 MANAGER_DICT = {"colcam_set": ColcamSceneManager,
-                "ecam_set": EcamSceneManager}
+                "ecam_set": EcamSceneManager,
+                "trig_ecamset": EcamSceneManager}
 
