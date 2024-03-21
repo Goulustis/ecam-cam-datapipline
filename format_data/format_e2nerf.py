@@ -34,7 +34,7 @@ def load_txt(scale_f):
     with open(scale_f, "r") as f:
         return float(f.read())
 
-def undistort_and_save_img(colmap_dir, save_dir, cond):
+def undistort_and_save_img(colmap_dir, save_dir, cond, ret_k_only=False):
     """
     cond (bools)
     """
@@ -51,6 +51,9 @@ def undistort_and_save_img(colmap_dir, save_dir, cond):
     x, y, w, h = roi
     new_K[0, 2] -= x
     new_K[1, 2] -= y
+
+    if ret_k_only:
+        return new_K
 
     def undist_save_fn(inp):
         idx, img_f = inp
