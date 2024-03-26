@@ -37,6 +37,9 @@ def load_txt(scale_f):
 def undistort_and_save_img(colmap_dir, save_dir, cond, ret_k_only=False):
     """
     cond (bools)
+    returns:
+        new_K (np.array[3,3]): rectified intrinsic matrix
+        new_img_size (tuple[2,]): rectified image size in (h, w)
     """
     img_fs = sorted(glob.glob(osp.join(colmap_dir, "images", "*.png")))
     
@@ -53,7 +56,7 @@ def undistort_and_save_img(colmap_dir, save_dir, cond, ret_k_only=False):
     new_K[1, 2] -= y
 
     if ret_k_only:
-        return new_K
+        return new_K, (h, w)
 
     def undist_save_fn(inp):
         idx, img_f = inp
@@ -65,7 +68,7 @@ def undistort_and_save_img(colmap_dir, save_dir, cond, ret_k_only=False):
 
     parallel_map(undist_save_fn, list(zip(list(range(len(img_fs))), img_fs)), show_pbar=True, desc="undistorting and saving")
     
-    return new_K
+    return new_K, (h, w)
 
 
 def load_st_end_trigs(work_dir):
@@ -214,7 +217,7 @@ def make_dataset_json(colmap_manager: ColmapSceneManager, cond):
 
 
 
-def main(work_dir, targ_dir, n_bins = 4):
+def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
     ######################## format rgb #####################
     ev_f = osp.join(work_dir, "processed_events.h5")
     colmap_dir = osp.join(work_dir, osp.basename(work_dir) + "_recon") ## XXX_recons
@@ -229,15 +232,14 @@ def main(work_dir, targ_dir, n_bins = 4):
     col_cond = colmap_manager.get_found_cond(len(cond))
     cond = col_cond & cond
     cond[np.where(cond)[0][-1]] = False
-    new_rgb_K = undistort_and_save_img(colmap_dir, save_img_dir, cond)
+    new_rgb_K, rec_rgb_size = undistort_and_save_img(colmap_dir, save_img_dir, cond, ret_k_only=cam_only)
 
     rgb_poses, pts3d, perm = load_colmap_data(colmap_dir)
 
-    img_f = glob.glob(osp.join(save_img_dir, "*.png"))[0]
     new_rgb_poses, cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
-                                              cv2.imread(img_f).shape[:2], cond=cond, n_bins=n_bins)
+                                                  rec_rgb_size, cond=cond, n_bins=n_bins)
 
-    mid_rgb_poses = update_poses_with_K(rgb_poses, new_rgb_K, cv2.imread(img_f).shape[:2])
+    mid_rgb_poses = update_poses_with_K(rgb_poses, new_rgb_K, rec_rgb_size)
     save_poses(osp.join(targ_dir, "mid_rgb_poses_bounds.npy"), mid_rgb_poses, pts3d, perm)
 
     save_f = osp.join(targ_dir, "rgb_poses_bounds.npy")
@@ -247,14 +249,17 @@ def main(work_dir, targ_dir, n_bins = 4):
         shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
     else:
         targ_dataset_json_f = osp.join(targ_dir, "dataset.json")
-        dataset_json = make_dataset_json(colmap_manager, cond)
-        with open(targ_dataset_json_f, "w") as f:
-            json.dump(dataset_json, f, indent=2)
+        if not osp.exists(targ_dataset_json_f):
+            dataset_json = make_dataset_json(colmap_manager, cond)
+            with open(targ_dataset_json_f, "w") as f:
+                json.dump(dataset_json, f, indent=2)
+        else:
+            print(f"dataset json already exists at: {targ_dataset_json_f}")
     #########################################################
 
 
     ############### format events ##############
-    ev_f = osp.join(work_dir, "processed_events.h5")
+    ev_f = osp.join(work_dir, "processed_events.h5") if not cam_only else None
     ev_K, ev_D = read_prosphesee_ecam_param(PROPHESEE_CAM_F)
     eimgs, new_ecam_K, eimg_size = make_eimgs(ev_K, ev_D, n_bins, cam_ts, ev_f)
     if eimgs is not None:
@@ -289,5 +294,6 @@ if __name__ == "__main__":
 
     main(args.work_dir, args.targ_dir, args.n_bins)
     # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/playground_v6",
-    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/playground_v6",
-    #      args.n_bins)
+    #      "debug",
+    #      args.n_bins,
+    #      cam_only=True)
