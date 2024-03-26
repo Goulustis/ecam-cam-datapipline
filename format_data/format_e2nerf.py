@@ -102,7 +102,16 @@ def update_poses_with_K(poses, K, img_hw):
 
 def make_new_poses_bounds(poses, new_K, work_dir, img_hw, cond, n_bins = 4):
     """
-    n_bins = number of bins as in 
+    inputs:
+        poses (np.ndarray[n, 4,4]): camera matrices
+        new_K (np.array(3,3)): camera intrisinc matrix
+        img_hw (tuple): size of image (h, 2)
+        n_bins (int): number of bins to split rgb exposure time into
+    
+    returns:
+        new_poses_bounds (n_frame*(n_bins - 1), 17): llff camera format
+        cam_ts (list): camera times at bin timesteps
+        mid_cam_ts (list): camera times at center of exposure of frame
     """
     st_trigs, end_trigs = load_st_end_trigs(work_dir)
     st_trigs, end_trigs = st_trigs[cond], end_trigs[cond]
@@ -125,7 +134,7 @@ def make_new_poses_bounds(poses, new_K, work_dir, img_hw, cond, n_bins = 4):
     hwfs = np.stack([np.array([h, w, fx])]*len(interp_E))[..., None]
     new_poses_bounds = np.concatenate([interp_E, hwfs], axis = -1).transpose(1,2,0)
 
-    return new_poses_bounds, cam_ts
+    return new_poses_bounds, cam_ts, mean_ts
 
 
 
@@ -236,7 +245,7 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
 
     rgb_poses, pts3d, perm = load_colmap_data(colmap_dir)
 
-    new_rgb_poses, cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
+    new_rgb_poses, cam_ts, mid_cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
                                                   rec_rgb_size, cond=cond, n_bins=n_bins)
 
     mid_rgb_poses = update_poses_with_K(rgb_poses, new_rgb_K, rec_rgb_size)
@@ -245,16 +254,16 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
     save_f = osp.join(targ_dir, "rgb_poses_bounds.npy")
     save_poses(save_f, new_rgb_poses, pts3d, perm)  # this'll calculate near far plane
 
-    if osp.exists(osp.join(colcam_set_dir, "dataset.json")):
-        shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
-    else:
-        targ_dataset_json_f = osp.join(targ_dir, "dataset.json")
-        if not osp.exists(targ_dataset_json_f):
+    targ_dataset_json_f = osp.join(targ_dir, "dataset.json")
+    if not osp.exists(targ_dataset_json_f):
+        if osp.exists(osp.join(colcam_set_dir, "dataset.json")):
+            shutil.copy(osp.join(colcam_set_dir, "dataset.json"), targ_dir)
+        else:
             dataset_json = make_dataset_json(colmap_manager, cond)
             with open(targ_dataset_json_f, "w") as f:
                 json.dump(dataset_json, f, indent=2)
-        else:
-            print(f"dataset json already exists at: {targ_dataset_json_f}")
+    else:
+        print(f"dataset json already exists at: {targ_dataset_json_f}")
     #########################################################
 
 
@@ -283,7 +292,9 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
                                                         evs_K=K_to_list(new_ecam_K), 
                                                         rgb_K=K_to_list(new_rgb_K),
                                                         K=["fx", "fy", "cx", "cy"],
-                                                        n_valid_img=int(cond.sum()))
+                                                        n_valid_img=int(cond.sum()),
+                                                        mid_cam_ts=mid_cam_ts.tolist(),
+                                                        ev_cam_ts=cam_ts.tolist())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
