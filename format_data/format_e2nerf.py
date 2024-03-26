@@ -301,10 +301,11 @@ if __name__ == "__main__":
     parser.add_argument("--work_dir", type=str, default="")
     parser.add_argument("--targ_dir", type=str, default="")
     parser.add_argument("--n_bins", type=int, default=4)
+    parser.add_argument("--cam_only", type=bool, default=False, help="if true, will process camera only. no events or images will be copied/processed")
     args = parser.parse_args()
 
     main(args.work_dir, args.targ_dir, args.n_bins)
     # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/playground_v6",
-    #      "debug",
+    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/playground_v6",
     #      args.n_bins,
     #      cam_only=True)
