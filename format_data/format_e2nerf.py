@@ -310,6 +310,12 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
                                                         colmap_scale=scale,
                                                         ev_cam_ts=cam_ts.tolist())
 
+
+    rel_json_f = osp.join(osp.join(work_dir, "rel_cam.json"))
+    dst_f = osp.join(targ_dir, "rel_cam.json")
+    if not osp.exists(dst_f):
+        shutil.copy(rel_json_f, dst_f)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--work_dir", type=str, default="")
