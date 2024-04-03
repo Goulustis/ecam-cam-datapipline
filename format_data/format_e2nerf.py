@@ -223,6 +223,18 @@ def make_dataset_json(colmap_manager: ColmapSceneManager, cond):
     return dataset_json
 
 
+def sample_points(pts3d:dict, n_pnts = 20000):
+    if n_pnts > len(pts3d):
+        return pts3d
+    
+    # Convert dictionary keys to a list and sample n keys using NumPy
+    keys = list(pts3d.keys())
+    sampled_keys = np.random.choice(keys, n_pnts, replace=False)
+    
+    # Create a new dictionary with the sampled keys
+    sampled_dict = {key: pts3d[key] for key in sampled_keys}
+    
+    return sampled_dict
 
 
 
@@ -244,6 +256,7 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
     new_rgb_K, rec_rgb_size = undistort_and_save_img(colmap_dir, save_img_dir, cond, ret_k_only=cam_only)
 
     rgb_poses, pts3d, perm = load_colmap_data(colmap_dir)
+    pts3d = sample_points(pts3d)
 
     new_rgb_poses, cam_ts, mid_cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
                                                   rec_rgb_size, cond=cond, n_bins=n_bins)
@@ -294,7 +307,8 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
                                                         K=["fx", "fy", "cx", "cy"],
                                                         n_valid_img=int(cond.sum()),
                                                         mid_cam_ts=mid_cam_ts.tolist(),
-                                                        ev_cam_ts=cam_ts.tolist())
+                                                        ev_cam_ts=cam_ts.tolist(),
+                                                        colmap_scale=scale)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
