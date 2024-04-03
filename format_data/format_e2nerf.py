@@ -307,8 +307,8 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
                                                         K=["fx", "fy", "cx", "cy"],
                                                         n_valid_img=int(cond.sum()),
                                                         mid_cam_ts=mid_cam_ts.tolist(),
-                                                        ev_cam_ts=cam_ts.tolist(),
-                                                        colmap_scale=scale)
+                                                        colmap_scale=scale,
+                                                        ev_cam_ts=cam_ts.tolist())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
