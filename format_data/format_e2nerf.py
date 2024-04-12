@@ -140,7 +140,7 @@ def make_new_poses_bounds(poses, new_K, work_dir, img_hw, cond, n_bins = 4):
 
 def make_eimgs(K, D, n_bins:int, cam_ts=None, ev_f:str=None, img_size=(720, 1280)):
     """
-    cam_ts (list: [[st_t1, end_t1], [st_t2, end_t2] ... ]) for eimgs
+    cam_ts (list: [t_i ...]) of shape (n_frames * n_bins) for eimgs; will be reshaped to (n_frames, n_bins)
     K (np.array (3,3))
 
     ev_f: if None, calculate new_K and return 
@@ -320,12 +320,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--work_dir", type=str, default="")
     parser.add_argument("--targ_dir", type=str, default="")
-    parser.add_argument("--n_bins", type=int, default=4)
+    parser.add_argument("--n_bins", type=int, default=6)
     parser.add_argument("--cam_only", type=bool, default=False, help="if true, will process camera only. no events or images will be copied/processed")
     args = parser.parse_args()
 
     main(args.work_dir, args.targ_dir, args.n_bins)
-    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/playground_v6",
-    #      "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/playground_v6",
+    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1",
+    #     #  "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/atrium_finer",
+    #      "debug",
     #      args.n_bins,
-    #      cam_only=True)
+    #      cam_only=False)
