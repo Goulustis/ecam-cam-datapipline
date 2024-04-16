@@ -91,6 +91,57 @@ def w2cs_hwf_to_poses(w2c_mats, hwf):
     return poses
 
 
+def to_homogenous(mtxs):
+    """
+    inputs:
+        mtxs (np.ndarray): shape is (n, 3, 4)
+    outputs:
+        hom_mtx (np.ndarray): shape is (n, 4, 4)
+    """
+    if len(mtxs.shape) == 2:
+        mtxs = mtxs[np.newaxis, ...]
+    
+    hom_mtx = np.concatenate([mtxs, np.tile(np.array([0,0,0,1])[np.newaxis, np.newaxis, :], (mtxs.shape[0], 1, 1))], 1)
+    return hom_mtx
+
+def inv_mtxs(mtxs):
+    if mtxs.shape[-1] != 4 or mtxs.shape[-2] != 4:
+        mtxs = to_homogenous(mtxs)
+    
+    return np.linalg.inv(mtxs)
+
+
+def make_camera_json(ext_mtx, intr_mtx, dist, img_size):
+    """
+    input:
+        ext_mtx (np.array): World to cam matrix - shape = 4x4
+        intr_mtx (np.array): intrinsic matrix of camera - shape = 3x3
+
+    return:
+        nerfies.camera.Camera of the given mtx
+    """
+    R = ext_mtx[:3,:3]
+    t = ext_mtx[:3,3]
+    k1, k2, p1, p2 = dist[:4]
+    coord = -t.T@R  
+
+    cx, cy = intr_mtx[:2,2].astype(int)
+    cx, cy = int(cx), int(cy)
+
+    new_camera = {
+        "orientation":R.tolist(),
+        "position":coord.tolist(),
+        "focal_length":float(intr_mtx[0,0]),
+        "pixel_aspect_ratio":1,
+        "principal_point":[cx, cy],
+        "radial_distortion":[k1, k2, 0],
+        "tangential_distortion":[p1, p2],
+        "skew":0,
+        "image_size":img_size  ## (width, height) of camera
+    }
+
+    return new_camera
+
 
 if __name__ == "__main__":
     colcam_path = "/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin"
