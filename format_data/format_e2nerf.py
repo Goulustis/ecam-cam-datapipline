@@ -259,7 +259,7 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
     pts3d = sample_points(pts3d)
 
     new_rgb_poses, cam_ts, mid_cam_ts = make_new_poses_bounds(rgb_poses, new_rgb_K, work_dir, 
-                                                  rec_rgb_size, cond=cond, n_bins=n_bins)
+                                                              rec_rgb_size, cond=cond, n_bins=n_bins)
 
     mid_rgb_poses = update_poses_with_K(rgb_poses, new_rgb_K, rec_rgb_size)
     save_poses(osp.join(targ_dir, "mid_rgb_poses_bounds.npy"), mid_rgb_poses, pts3d, perm)
