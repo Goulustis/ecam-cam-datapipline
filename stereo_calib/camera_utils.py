@@ -102,7 +102,7 @@ def to_homogenous(mtxs):
         mtxs = mtxs[np.newaxis, ...]
     
     hom_mtx = np.concatenate([mtxs, np.tile(np.array([0,0,0,1])[np.newaxis, np.newaxis, :], (mtxs.shape[0], 1, 1))], 1)
-    return hom_mtx
+    return hom_mtx.squeeze()
 
 def inv_mtxs(mtxs):
     if mtxs.shape[-1] != 4 or mtxs.shape[-2] != 4:
