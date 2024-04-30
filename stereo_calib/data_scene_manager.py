@@ -55,7 +55,13 @@ class ColcamSceneManager:
     
 
     def get_extrnxs(self, idx):
+        """
+        returns world to cam
+        """
         return load_json_cam(self.cam_fs[idx])
+    
+    def get_all_extrnxs(self):
+        return np.stack([load_json_cam(e) for e in self.cam_fs])
 
     def __len__(self):
         return len(self.cam_fs)
