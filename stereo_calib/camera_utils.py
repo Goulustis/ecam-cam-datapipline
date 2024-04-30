@@ -125,8 +125,8 @@ def make_camera_json(ext_mtx, intr_mtx, dist, img_size):
     k1, k2, p1, p2 = dist[:4]
     coord = -t.T@R  
 
-    cx, cy = intr_mtx[:2,2].astype(int)
-    cx, cy = int(cx), int(cy)
+    cx, cy = intr_mtx[:2,2]
+    cx, cy = float(cx), float(cy)
 
     new_camera = {
         "orientation":R.tolist(),
