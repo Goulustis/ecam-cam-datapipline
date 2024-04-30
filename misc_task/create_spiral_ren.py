@@ -115,7 +115,12 @@ def create_and_save_dummy_frames(scene: ColcamSceneManager, targ_dir, n_dummies)
 
 
 
-def create_and_save_dataset(n_frames, targ_dir, n_ren=64):
+def create_and_save_dataset(n_frames, src_dataset_f, targ_dir, n_ren=64):
+
+    with open(src_dataset_f, "r") as f:
+        dataset = json.load(f)
+    n_train = len(dataset["train_ids"])
+    
     targ_dataset_f = osp.join(targ_dir, "dataset.json")
     ids = [str(i).zfill(6) for i in range(n_frames)]
 
@@ -123,7 +128,7 @@ def create_and_save_dataset(n_frames, targ_dir, n_ren=64):
     dataset = {
         "count":n_frames,
         "num_exemplars":n_frames,
-        "train_ids":ids,
+        "train_ids":ids[:n_train],
         "val_ids":ids[::n_frames_per_ren],
         "test_ids": []
     }
@@ -141,11 +146,12 @@ def create_spiral_render_data(src_dir:str, targ_dir:str = None):
     if targ_dir is None:
         targ_dir = osp.join(osp.dirname(src_dir), "spiral_colcam_set")
 
+    src_dataset_f = osp.join(src_dir, "dataset.json")
     scene = ColcamSceneManager(src_dir)
     
     spiral_Ms = create_and_save_spiral(scene, osp.join(targ_dir, "camera"), n_views=len(scene))
     create_and_save_dummy_frames(scene, osp.join(targ_dir, "rgb/1x"), len(spiral_Ms))
-    create_and_save_dataset(len(spiral_Ms), targ_dir, n_ren=64)
+    create_and_save_dataset(len(spiral_Ms), src_dataset_f, targ_dir, n_ren=64)
 
     src_meta_f = osp.join(src_dir, "metadata.json")
     targ_meta_f = osp.join(targ_dir, "metadata.json")
