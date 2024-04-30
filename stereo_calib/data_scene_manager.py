@@ -7,6 +7,9 @@ import numpy as np
 
 
 def load_json_cam(cam_f):
+    """
+    returns 3x4
+    """
     with open(cam_f, "r") as f:
         data = json.load(f)
         R, pos = np.array(data["orientation"]), np.array(data["position"])
@@ -35,17 +38,18 @@ class ColcamSceneManager:
         expect: xxx/colcam_set
         """
         self.data_dir = data_dir
-        self.dataset_json = osp.join(self.data_dir, "dataset.json")
+        self.dataset_json_f = osp.join(self.data_dir, "dataset.json")
         self.img_fs = sorted(glob.glob(osp.join(data_dir, "rgb", "1x", "*.png")))
 
-        with open(self.dataset_json, "r") as f:
-            data = json.load(f)
-            self.img_ids = [int(e) for e in data["ids"]]
+        with open(self.dataset_json_f, "r") as f:
+            self.dataset = json.load(f)
+            self.img_ids = [int(e) for e in self.dataset["ids"]]
     
 
         self.img_fs = [self.img_fs[e] for e in self.img_ids]
 
         self.cam_fs = sorted(glob.glob(osp.join(self.data_dir, "camera", "*.json")))
+        self.img_shape = self.get_img(0).shape[:2]
     
     def get_img(self, idx):
         return cv2.imread(self.img_fs[idx])
@@ -61,10 +65,10 @@ class ColcamSceneManager:
         return load_json_cam(self.cam_fs[idx])
     
     def get_all_extrnxs(self):
-        return np.stack([load_json_cam(e) for e in self.cam_fs])
+        return np.stack([load_json_cam(e) for e in self.cam_fs[:self.__len__()]])
 
     def __len__(self):
-        return len(self.cam_fs)
+        return min(len(self.cam_fs), len(self.img_fs))
 
 
 class EcamSceneManager(ColcamSceneManager):
@@ -80,6 +84,23 @@ class EcamSceneManager(ColcamSceneManager):
         img = np.stack([(self.eimgs[idx] != 0).astype(np.uint8) * 255]*3, axis=-1)
         return img
 
+
+class EdEvimoManager(ColcamSceneManager):
+    def __init__(self, data_dir):
+        super().__init__(data_dir)
+
+        depth_f = osp.join(data_dir, "depth.json")
+        with open(depth_f, "r") as f:
+            depths = json.load(f)
+        ks = sorted(depths.keys())
+        self.depths = [depths[k] for k in ks]
+    
+    def get_depth(self, idx):
+        depth = self.depths[idx]
+        return depth["min"], depth["max"]
+
+    def get_all_depths(self):
+        return np.array([[e["min"], e["max"]] for e in self.depths[:self.__len__()]])
 
 
 MANAGER_DICT = {"colcam_set": ColcamSceneManager,
