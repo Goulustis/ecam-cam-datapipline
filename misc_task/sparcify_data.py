@@ -25,7 +25,7 @@ def symlink_directory(src_dir, dst_dir):
                 os.symlink(src_file, dst_file)
 
 
-def sparcify_colcam(manager: ColcamSceneManager, targ_colcam_dir, n_train=45):
+def sparcify_colcam(manager: ColcamSceneManager, targ_colcam_dir, n_train=40):
     symlink_directory(manager.data_dir, targ_colcam_dir)
     
     dataset_f = osp.join(manager.data_dir, "dataset.json")
@@ -37,7 +37,8 @@ def sparcify_colcam(manager: ColcamSceneManager, targ_colcam_dir, n_train=45):
     new_train_ids = train_ids[::n_skip]
     dataset["train_ids"] = new_train_ids
 
-    with open(dataset_f, "w") as f:
+    save_dataset_f = osp.join(targ_colcam_dir, "dataset.json")
+    with open(save_dataset_f, "w") as f:
         json.dump(dataset, f, indent=2)
 
     img_ts =  manager.ts
