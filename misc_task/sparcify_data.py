@@ -26,7 +26,7 @@ def symlink_directory(src_dir, dst_dir):
                 os.symlink(src_file, dst_file)
 
 
-def build_train_ids(dataset:dict, n_gap:int=3, n_train:int=40):
+def build_update_train_ids(dataset:dict, n_gap:int=3, n_train:int=40):
     all_ids = sorted(dataset["ids"])[:-5]
     val_keys = [k for k in dataset.keys() if ("_ids" in k and not "train" in k)]
     val_ids = [int(e) for e in dataset["val_ids"]]
@@ -38,6 +38,7 @@ def build_train_ids(dataset:dict, n_gap:int=3, n_train:int=40):
 
     n_skip = len(all_ids) // n_train
     train_ids = all_ids[::n_skip]
+    dataset["train_ids"] = train_ids
     return train_ids
 
 def sparcify_colcam(manager: ColcamSceneManager, targ_colcam_dir, n_train=40):
@@ -47,7 +48,7 @@ def sparcify_colcam(manager: ColcamSceneManager, targ_colcam_dir, n_train=40):
     with open(dataset_f, "r") as f:
         dataset = json.load(f)
 
-    new_train_ids = build_train_ids(dataset, n_train=n_train)
+    new_train_ids = build_update_train_ids(dataset, n_train=n_train)
 
     save_dataset_f = osp.join(targ_colcam_dir, "dataset.json")
     with open(save_dataset_f, "w") as f:
@@ -66,12 +67,13 @@ def sparcify_ecam_set(ecam_dir, targ_ecam_dir, train_rgb_ts, t_gap=16000):
     
     manager = EcamSceneManager(ecam_dir)
     all_ids = np.arange(len(manager.eimgs))
+    eimg_ts = manager.ts[:len(all_ids)]
 
     train_ids = []
     for rgb_t in train_rgb_ts:
         st_t = rgb_t - t_gap/2
         en_t = rgb_t + t_gap/2
-        cond = (manager.ts >= st_t) & (manager.ts <= en_t)
+        cond = (eimg_ts >= st_t) & (eimg_ts <= en_t)
         train_ids.extend(all_ids[cond])
 
     train_ids = sorted(np.unique(train_ids))
@@ -125,7 +127,7 @@ def main(scene_dir):
 
 if __name__ == "__main__":
     # scene_dir = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/depth_var_1_lr_000000"
-    scene_dir = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/halloween_b2_v1_rect"
+    scene_dir = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/atrium_b2_v1_rect"
     main(scene_dir)
 
     # src_dir = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/depth_var_1_lr_000000_sparse/colcam_set"
