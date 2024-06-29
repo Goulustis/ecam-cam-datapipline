@@ -129,7 +129,65 @@ class EdEvimoManager(ColcamSceneManager):
         return np.array([[e["min"], e["max"]] for e in self.depths[:self.__len__()]])
 
 
+class ColmapManager(SceneManager):
+    def __init__(self, scene_dir):
+        self.scene_dir = scene_dir
+        self.img_dir = osp.join(scene_dir, "images")
+        # self.img_dir = osp.join(scene_dir, "images")
+
+        self.cam_f = osp.join(self.scene_dir, "sparse/0/cameras.bin")
+        self._init_camera()
+
+        self.colamp_img_f = osp.join(self.scene_dir, "sparse/0/images.bin")
+        self.colmap_img = read_images_binary(self.colamp_img_f)
+        self._init_extrinsics()
+
+        img_names = [self.colmap_img[key].name for key in self.colmap_img.keys()]
+        self.img_fs = sorted([osp.join(self.img_dir, img_name) for img_name in img_names])
+        
+    
+    def _init_extrinsics(self):
+        self.extrnsics = np.zeros((len(self.colmap_img), 3,4))
+
+        for i, (k, v) in enumerate(self.colmap_img.items()):
+            R, t = v.qvec2rotmat(), v.tvec[:, None]
+            self.extrnsics[i] = np.concatenate([R, t], axis=-1)
+
+    
+    def _init_camera(self):
+        cameras = read_cameras_binary(self.cam_f)
+        camera = cameras[list(cameras.keys())[0]]
+        
+        fx, fy, cx, cy = camera.params[:4]
+        self.D = camera.params[4:] if len(camera.params) > 4 else np.zeros(4)
+
+
+        self.K = np.array([[fx, 0, cx],
+                           [0, fy, cy],
+                           [0, 0, 1]])
+        
+        self.img_shape = (camera.height, camera.width)
+    
+    def __len__(self):
+        return len(self.img_fs)
+
+    def get_img_shape(self):
+        return self.img_shape
+    
+    def get_img_f(self, idx):
+        return self.img_fs[idx]
+    
+    def get_img(self, idx):
+        return cv2.imread(self.img_fs[idx])
+    
+    def get_extrnxs(self, idx):
+        return self.extrnsics[idx]
+    
+    def get_intrnxs(self):
+        return self.K, self.D
+
 MANAGER_DICT = {"colcam_set": ColcamSceneManager,
                 "ecam_set": EcamSceneManager,
-                "trig_ecamset": EcamSceneManager}
+                "trig_ecamset": EcamSceneManager,
+                "colmap": ColmapManager}
 
