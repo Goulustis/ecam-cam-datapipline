@@ -4,7 +4,8 @@ import glob
 import os
 import cv2
 import numpy as np
-
+from abc import ABC, abstractmethod
+from colmap_find_scale.read_write_model import read_cameras_binary, read_images_binary
 
 def load_json_cam(cam_f):
     """
@@ -29,6 +30,69 @@ def load_json_intr(cam_f):
     return np.array([[fx, 0, cx],
                     [0,   fy, cy],
                     [0, 0, 1]]), (k1,k2,p1,p2)
+
+class SceneManager(ABC):
+
+
+    @abstractmethod
+    def __len__(self):
+        """
+        Get the number of images in the scene.
+        Returns:
+            int: The number of images in the scene.
+        """
+        pass
+
+    @abstractmethod
+    def get_img_shape(self):
+        """
+        Get the shape of the image.
+        Returns:
+            tuple: The height and width of the image. (h, w)
+        """
+        pass
+
+    @abstractmethod
+    def get_img_f(self, idx):
+        """
+        Get the filename of the image at the specified index.
+        Args:
+            idx (int): The index of the image.
+        Returns:
+            str: The filename of the image.
+        """
+        pass
+
+    @abstractmethod
+    def get_img(self, idx):
+        """
+        Get the image at the specified index.
+        Args:
+            idx (int): The index of the image.
+        Returns:
+            array: The image data.
+        """
+        pass
+
+    @abstractmethod
+    def get_extrnxs(self, idx):
+        """
+        Get the extrinsics of the camera for the image at the specified index.
+        Args:
+            idx (int): The index of the image.
+        Returns:
+            array: 3x4 world to cam.
+        """
+        pass
+
+    @abstractmethod
+    def get_intrnxs(self):
+        """
+        Get the intrinsic parameters of the camera.
+        Returns:
+            tuple: A tuple containing the intrinsic matrix and distortion coefficients.
+        """
+        pass
 
 
 class ColcamSceneManager:
