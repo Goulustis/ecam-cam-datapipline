@@ -48,7 +48,7 @@ class ColcamSceneManager:
             self.val_ids = self.dataset["val_ids"]
     
 
-        self.img_fs = [self.img_fs[e] for e in self.img_ids]
+        self.img_fs = [self.img_fs[e] for e in self.img_ids if e < len(self.img_fs)]
 
         self.cam_fs = sorted(glob.glob(osp.join(self.data_dir, "camera", "*.json")))
         self.img_shape = self.get_img(0).shape[:2]
@@ -62,10 +62,15 @@ class ColcamSceneManager:
     
     def load_ts(self, cam_fs):
         ts = []
-        for cam_f in cam_fs:
+        for i, cam_f in enumerate(cam_fs):
             with open(cam_f, "r") as f:
                 data = json.load(f)
-                ts.append(data["t"])
+                try:
+                    ts.append(data["t"])
+                except Exception as e:
+                    print(e)
+                    print(osp.basename(cam_f), f"does not have t. frame: {i + 1}/{len(cam_fs)}. Replacing with last t")
+                    ts.append(ts[-1])
         
         return np.array(ts)
 
@@ -94,8 +99,9 @@ class EcamSceneManager(ColcamSceneManager):
             self.next_cam_fs = sorted(glob.glob(osp.join(self.data_dir, "next_camera", "*.json")))
             self.prev_ts = self.load_ts(self.prev_cam_fs)
             self.next_ts = self.load_ts(self.next_cam_fs)
-        
-        self.ts = self.load_ts(self.cam_fs)  # this one is slightly meaningless
+            self.ts = self.prev_ts
+        else:
+            self.ts = self.load_ts(self.cam_fs)  # this one is slightly meaningless
 
     def __len__(self):
         return min(len(self.cam_fs), len(self.eimgs))
