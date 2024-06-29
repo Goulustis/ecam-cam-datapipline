@@ -88,7 +88,7 @@ def linear_map_rgb(img):
 
 class StereoCalibration(object):
     def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=232, st_n=150,
-                 colcam_param_path="NULL", ecam_param_path="NULL"):
+                 colcam_param_path="None", ecam_param_path="None"):
         """
         grid_size (float): size of grid
         n_use (int): number of frames to use from each camera for calibration
@@ -310,10 +310,10 @@ if __name__ == '__main__':
         out_path = args.out
     # cal_data = StereoCalibration(args.from_imgs, args.to, args.size, colcam_param_path=args.colcam_param, ecam_param_path=args.ecam_param)
     cal_data = StereoCalibration(args.from_imgs, args.to, args.size, 
-                                 colcam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_new_v4_recons/sparse/0/cameras.bin", 
-                                 ecam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/intrinsics_prophesee.json",
-                                #  colcam_param_path=args.colcam_param, 
-                                #  ecam_param_path=args.ecam_param,
+                                #  colcam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_new_v4_recons/sparse/0/cameras.bin", 
+                                #  ecam_param_path="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/intrinsics_prophesee.json",
+                                 colcam_param_path=args.colcam_param, 
+                                 ecam_param_path=args.ecam_param,
                                  )
     cam_model = cal_data.camera_model
 
