@@ -11,6 +11,8 @@ def read_colmap_cam(cam_path, scale=1):
     cam = cam[1]
 
     fx, fy, cx, cy = cam.params[:4]*scale
+    foc = (fx + fy)*0.5
+    fx = fy = foc
     int_mtx = np.array([[fx, 0, cx],
                         [0, fy, cy],
                         [0, 0, 1]]) 
@@ -29,7 +31,7 @@ def read_prosphesee_ecam_param(cam_path):
         data = json.load(f)
     
     return np.array(data["camera_matrix"]['data']).reshape(3,3), \
-           np.array(data['distortion_coefficients']['data'])
+           np.array(data['distortion_coefficients']['data'][:4])
 
 
 def undistort_image(image, camera_matrix, dist_coeffs):
