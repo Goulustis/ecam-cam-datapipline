@@ -199,7 +199,8 @@ class DataProvider:
         return len(self.timestamp_provider)
 
     def __next__(self) -> EventsForReconstruction:
-        t_reconstruction_us = next(self.timestamp_provider)
+        # Shift from st_trigger to end_trigger
+        t_reconstruction_us = next(self.timestamp_provider) + 14980
 
         events = self.shared_buffer_consumer.get_events_until(t_reconstruction_us)
         if events is None:

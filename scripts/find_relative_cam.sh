@@ -18,12 +18,14 @@ conda activate e2calib
 WORKING_DIR=$(pwd)
 # IMAGE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/black_seoul_b1_v3_recons/images   #[REQUIRED] path to image dir
 # EVENT_H5=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/black_seoul_b1_v3/events.h5                    #[REQUIRED] path to events
-IMAGE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_new_v4_recons/images   #[REQUIRED] path to image dir
-EVENT_H5=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/ecam_code/raw_events/calib_new_v4/events.h5  
-SQUARE_SIZE=3                                      #[REQUIRED] size of checkerboard square in desired unit (mm, cm, m)
-COLCAM_PARAM=None   #[OPTIONAL] camera parameters from colmap; put down a non-existent path to not use
-ECAM_PARAM=None            #[OPTIONAL] event camera parameters from prosphesees; put down non-existent path to not use
-TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
+IMAGE_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/data_rgb/calib_v7_recons/images   #[REQUIRED] path to image dir
+EVENT_H5=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/ev_recordings/calib_v7/events.h5
+SQUARE_SIZE=3                                      #[REQUIRED] size of checkerboard square in desired unit (mm, cm, m); assume cm
+COLCAM_PARAM=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/data_rgb/calib_v7_recons/sparse/0/cameras.bin   #[OPTIONAL] camera parameters from colmap; put down a non-existent path to not use; default=None
+ECAM_PARAM=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/intrinsics/ecam_K_v7.json                         #[OPTIONAL] event camera parameters from prosphesees; put down non-existent path to not use; default=None
+# TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
+# START_TRIGGER RECOMMENDED; offline_reconstruction.py shift from st_trigger to end_trigger
+TRIGGER_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/ev_recordings/calib_v7/mean_triggers.txt
 ########################## modify inputs above^^^^^^^^^ ##############################
 IMAGE_PATH=$(realpath $IMAGE_PATH)
 EVENT_H5=$(realpath $EVENT_H5)
