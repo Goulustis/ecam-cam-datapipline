@@ -24,7 +24,7 @@ SQUARE_SIZE=3                                      #[REQUIRED] size of checkerbo
 COLCAM_PARAM=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/data_rgb/calib_v7_recons/sparse/0/cameras.bin   #[OPTIONAL] camera parameters from colmap; put down a non-existent path to not use; default=None
 ECAM_PARAM=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/intrinsics/ecam_K_v7.json                         #[OPTIONAL] event camera parameters from prosphesees; put down non-existent path to not use; default=None
 # TRIGGER_PATH=$(dirname $EVENT_H5)/triggers.txt 
-# START_TRIGGER RECOMMENDED; offline_reconstruction.py shift from st_trigger to end_trigger
+# START_TRIGGER RECOMMENDED; provider.py shift from st_trigger to end_trigger
 TRIGGER_PATH=/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/ev_recordings/calib_v7/mean_triggers.txt
 ########################## modify inputs above^^^^^^^^^ ##############################
 IMAGE_PATH=$(realpath $IMAGE_PATH)
