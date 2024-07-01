@@ -74,7 +74,11 @@ class ImagePointSelector:
         if show_img:
             cv2.imshow('Composite Image', self.composite_image)
 
-    def select_points(self):
+    def select_points(self, reselect=False):
+        save_fs = self.save_all_points(names_only=True)
+        if osp.exists(save_fs[0]) and not reselect:
+            return [np.load(f) for f in save_fs]
+        
         cv2.namedWindow('Composite Image', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('Composite Image', self.original_composite_image.shape[1], self.original_composite_image.shape[0])
         cv2.setMouseCallback('Composite Image', self.click_event)
@@ -94,13 +98,19 @@ class ImagePointSelector:
 
         return np.array(self.points)
 
-    def save_all_points(self):
+    def save_all_points(self, names_only=False):
+        save_fs = []
         for i, (img_f, img_pnt) in enumerate(zip(self.image_paths, self.points)):
             if self.save_fs is not None:
                 save_f = self.save_fs[i]
             else:
                 save_f = osp.join(self.save_dir, osp.basename(img_f).split(".")[0] + f"_{self.end_fix}.npy")
-            np.save(save_f, img_pnt)
+            save_fs.append(save_f)
+        
+        if names_only:
+            return save_fs
+        
+        np.save(save_f, img_pnt)
     
     def select_checker(self):
         pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  self.images])
