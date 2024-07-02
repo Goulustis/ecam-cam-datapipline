@@ -14,6 +14,10 @@ The scripts should be runned in the following sequence:
 2) scripts/create_ecam_extrinsics.sh (finds colmap scene scale & event camera extrinsics based on relative camera position)
 3) scripts/format_dataset.sh         (creates one scene)
 
+## Manual Scale Find
+1) Run extrinsics_visualization/make_trig_eimgs.py (COLMAP_SCALE.txt not found error ok)
+2) Change params and run extrinsics_correction/manual_scale_finding.py (manual find correspondance)
+
 ## input directory format
 Assume scene structure in this format (both general scene and checker board scene for calibration)
 ```
