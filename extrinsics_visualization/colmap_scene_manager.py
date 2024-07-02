@@ -157,6 +157,7 @@ class ColmapSceneManager:
                                    "reliable": self.sample_pnts_reliable}
         self.sample_method = sample_method
         self.sample_pnt_fnc = self.sample_pnt_fnc_dic[sample_method]
+        self.max_images_id = max(list(self.images.keys()))
 
     def set_sample_method(self, method):
         self.sample_method = method
@@ -218,6 +219,9 @@ class ColmapSceneManager:
         """
         img_idx: colmap index
         """
+        if img_idx < 0:
+            img_idx = self.max_images_id + img_idx
+            
         if img_idx is not None:
             img_obj = self.images[img_idx]
         
@@ -248,6 +252,8 @@ class ColmapSceneManager:
 
     def get_img_f(self, img_idx):
         assert img_idx != 0, "colmap index starts from 1"
+        if img_idx < 0:
+            img_idx = self.max_images_id + img_idx
         return osp.join(self.img_dir, self.images[img_idx].name)
 
     def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
