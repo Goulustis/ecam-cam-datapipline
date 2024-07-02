@@ -87,7 +87,7 @@ def linear_map_rgb(img):
 
 
 class StereoCalibration(object):
-    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=232, st_n=150,
+    def __init__(self, from_dir, to_dir, grid_size=4.23, n_use=232, st_n=0,
                  colcam_param_path="None", ecam_param_path="None"):
         """
         grid_size (float): size of grid
@@ -166,17 +166,17 @@ class StereoCalibration(object):
             img_shape = gray_from.shape[::-1]
 
         print("points available", len(self.objpoints))
-        print("calibrating first camera")
 
         if (self.colcam_param_path is None) or not osp.exists(self.colcam_param_path):
+            print("calibrating first camera")
             rt, self.M1, self.d1, self.r1, self.t1 = cv2.calibrateCamera(
                 self.objpoints, self.imgpoints_from, gray_from.shape[::-1], None, None)
         else:
             print("reading from colmap intrinsics")
             self.M1, self.d1 = read_colmap_cam_param(self.colcam_param_path)
         
-        print("calibrating second camera")
         if (self.ecam_param_path is None) or not osp.exists(self.ecam_param_path):
+            print("calibrating event camera")
             rt, self.M2, self.d2, self.r2, self.t2 = cv2.calibrateCamera(
                 self.objpoints, self.imgpoints_to, gray_to.shape[::-1], None, None)
         else:
@@ -234,15 +234,12 @@ class StereoCalibration(object):
         flags = 0
         flags |= cv2.CALIB_FIX_INTRINSIC
         flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
-        # flags |= cv2.CALIB_USE_INTRINSIC_GUESS
         flags |= cv2.CALIB_FIX_FOCAL_LENGTH
-        # flags |= cv2.CALIB_FIX_ASPECT_RATIO
-        flags |= cv2.CALIB_ZERO_TANGENT_DIST
-        # flags |= cv2.CALIB_RATIONAL_MODEL
-        # flags |= cv2.CALIB_SAME_FOCAL_LENGTH
-        # flags |= cv2.CALIB_FIX_K3
-        # flags |= cv2.CALIB_FIX_K4
-        # flags |= cv2.CALIB_FIX_K5
+        flags |= cv2.CALIB_FIX_ASPECT_RATIO
+        flags |= cv2.CALIB_FIX_TANGENT_DIST
+        flags |= cv2.CALIB_FIX_K1
+        flags |= cv2.CALIB_FIX_K2
+        flags |= cv2.CALIB_FIX_K3
 
         print("prev_M1: \n", self.M1)
         print("prev_d1: \n", self.d1)
@@ -281,7 +278,7 @@ class StereoCalibration(object):
                             ('E', E), 
                             ('F', F)])
         
-        cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
         return camera_model
 
 if __name__ == '__main__':
