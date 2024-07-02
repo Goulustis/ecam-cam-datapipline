@@ -25,6 +25,7 @@ def make_camera(ext_mtx, intr_mtx, dist):
     return:
         nerfies.camera.Camera of the given mtx
     """
+    dist = dist.squeeze()
     R = ext_mtx[:3,:3]
     t = ext_mtx[:3,3]
     k1, k2, p1, p2, k3 = dist
