@@ -8,6 +8,7 @@ import cv2
 from scipy.linalg import svd
 from scipy import optimize
 from tqdm import tqdm
+import argparse
 
 from extrinsics_correction.point_selector import ImagePointSelector
 from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager, proj_3d_pnts, draw_2d_pnts
@@ -32,7 +33,7 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
         idx1, idx2 = clear_idxs[1] + 1, clear_idxs[3] + 1
     else:
-        idx1, idx2 = 1, 16
+        idx1, idx2 = -40, -30
         # idx1, idx2 = 3, 54
     
     print("img used:", osp.basename(manager.get_img_f(idx1)), osp.basename(manager.get_img_f(idx2)))
@@ -504,8 +505,12 @@ def save_blur_imgs(colmap_dir):
         shutil.copy(img_f, save_f)
 
 if __name__ == "__main__":
-    scene="calib_v7"
-    # scene="sofa_soccer_dragon"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scene", default="calib_v7")
+    args = parser.parse_args()
+    scene = args.scene
+    
+
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
     work_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}"
 
