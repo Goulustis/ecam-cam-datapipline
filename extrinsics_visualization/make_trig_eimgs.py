@@ -19,7 +19,7 @@ from extrinsics_creator.create_rel_cam import apply_rel_cam
 
 # def create_eimg_by_triggers(events, triggers, exposure_time = 5000, make_eimg=True):
 def create_eimg_by_triggers(events:EventBuffer, triggers, exposure_time = 14980, make_eimg=True):
-    eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.int8)
+    eimgs = np.zeros((len(triggers), 720, 1280), dtype=np.uint8)
     eimg_ts = []
     for i, trigger in tqdm(enumerate(triggers), total=len(triggers), desc="making ev imgs"):
         # st_t, end_t = max(trigger - exposure_time//2, 0), trigger + exposure_time//2
@@ -33,8 +33,8 @@ def create_eimg_by_triggers(events:EventBuffer, triggers, exposure_time = 14980,
         if make_eimg:
             curr_t, curr_x, curr_y, curr_p = events.retrieve_data(st_t, end_t)
 
-            eimg = ev_to_eimg(curr_x, curr_y, curr_p)
-            # eimg[eimg != 0] = 255
+            eimg = ev_to_eimg(curr_x, curr_y, curr_p).astype(np.uint8)
+            eimg[eimg != 0] = 255
             eimgs[i] = eimg
             
             events.drop_cache_by_t(st_t)
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     
 
     if args.workdir is not None:
-        # SCALE=0.10473564
+        ## make cameras
         SCALE=load_scale_factor(args.input)
         trig_ecam_set_dir = osp.join(osp.dirname(args.output), "trig_ecamset")
         eimgs_dir = osp.join(trig_ecam_set_dir, "eimgs")
