@@ -32,20 +32,13 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
         idx1, idx2 = clear_idxs[1] + 1, clear_idxs[3] + 1
     else:
-        # idx1, idx2 = 7, 45
-        idx1, idx2 = 1, 39
+        idx1, idx2 = 1, 16
+        # idx1, idx2 = 3, 54
     
     print("img used:", osp.basename(manager.get_img_f(idx1)), osp.basename(manager.get_img_f(idx2)))
 
     selector = ImagePointSelector([manager.get_img_f(idx) for idx in [idx1, idx2]], save=True, save_dir=output_dir)
-    if use_checker:
-        selector.select_checker()
-        # pnts_2d = np.stack([detect_chessboard(img).squeeze() for img in  selector.images])
-        # selector.points = pnts_2d
-        # selector.draw_points()
-        # selector.save_all_points()
-    else:
-        selector.select_points()
+    selector.select_points()
     selector.save_ref_img()
 
     extr1, extr2 = manager.get_extrnxs(idx1), manager.get_extrnxs(idx2)
@@ -60,6 +53,7 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         f.write(manager.get_img_f(idx1) + "\n")
         f.write(manager.get_img_f(idx2) + "\n")
 
+    return int(img_id1), int(img_id2)
 
 def find_correspondance(ori_pnts, selected_pnts):
     dists = np.sqrt(((ori_pnts[:, None] - selected_pnts[None])**2).sum(axis=-1))
@@ -434,29 +428,30 @@ def pnp_find_rel_cam(out_dir, work_dir):
     assert 0
 
 
-
-
-def scale_opt(output_dir, work_dir, colmap_dir):
+def scale_opt(output_dir, work_dir, colmap_dir, rgb_ids):
     relcam_f = osp.join(work_dir, "rel_cam.json")
     with open(relcam_f, "r") as f:
         data = json.load(f)
         ecam_K, ecam_D, R, T = [np.array(data[e]) for e in ["M2", "dist2", "R", "T"]]
     
     objpoints = np.load(osp.join(output_dir, "triangulated.npy"))
-    pnts_2d = [np.load(f) for f in sorted(glob.glob(osp.join(output_dir, "*_opt.npy")))]
 
-    idx1, idx2 = 250, 337
-    # if len(pnts_2d) == 0:
+    idx1, idx2 = rgb_ids
     eimg_fs = sorted(glob.glob(osp.join(work_dir, "trig_eimgs", "*.png")))
-    selector = ImagePointSelector([eimg_fs[idx1], eimg_fs[idx2]], end_fix="opt")
-    pnts_2d = selector.select_points()
+    selector = ImagePointSelector([eimg_fs[idx1], eimg_fs[idx2]], save_dir=output_dir, end_fix="opt")
+
+    pnts_2d_fs = sorted(glob.glob(osp.join(output_dir, "*_opt.npy")))
+    if len(pnts_2d_fs) == 0:
+        pnts_2d = selector.select_points()
+    else:
+        pnts_2d = [np.load(f) for f in pnts_2d_fs]
     
     manager = ColmapSceneManager(colmap_dir)
-    rgb_extrs = [manager.get_extrnxs(idx1+1), manager.get_extrnxs(idx1+2)]
+    rgb_extrs = [manager.get_extrnxs(idx1+1), manager.get_extrnxs(idx2+1)]
 
     def loss_fn(scale):
         loss = 0
-        for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs, pnts_2d)):
+        for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs[:1], pnts_2d[:1])):
             rgb_R, rgb_T = rgb_extr[:3,:3], rgb_extr[:3,3:]
             ecam_R, ecam_T = R@rgb_R, R@rgb_T + T*scale
             proj_pnts = proj_3d_pnts(None, ecam_K, np.concatenate([ecam_R, ecam_T], axis=1), objpoints, dist_coeffs=ecam_D)[0]
@@ -464,27 +459,33 @@ def scale_opt(output_dir, work_dir, colmap_dir):
         
         return loss
     
-    res = optimize.minimize(loss_fn, (0.158, ), bounds=[(0, None)])
-    print("optim scale:", res)
+    res = optimize.minimize(loss_fn, (0.158, ), method='Powell', bounds=[(0, None)])
+    scale_solv = res.x[0]
+    print("optim res:", res)
+    print("optim scale:", scale_solv)
+    with open(osp.join(colmap_dir, "colmap_scale.txt"), "w") as f:
+        f.write(str(scale_solv))
 
-
-    ##### PNP SOLVE #################
-    Rs, Ts = [], []
+    ### sanity checking ###
     ecam_Rs, ecam_Ts = [], []
     for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs, pnts_2d)):
         rgb_R, rgb_T = rgb_extr[:3,:3], rgb_extr[:3,3:]
-        # ecam_R, ecam_T = pnp_extrns(objpoints, pnt_2d.astype(np.float32), ecam_K, ecam_D, rgb_R, rgb_T)
-        ecam_R, ecam_T = pnp_extrns(objpoints, pnt_2d.astype(np.float32), ecam_K, ecam_D)
         
-        R_rel = ecam_R@rgb_R.T
-        # T_rel = ecam_t - R_rel@rgb_T
-        T_rel = rgb_R.T @ (ecam_T - rgb_T)
-        Rs.append(R_rel), Ts.append(T_rel)
+        ecam_R, ecam_T = R@rgb_R, R@rgb_T + T*scale_solv
         ecam_Rs.append(ecam_R), ecam_Ts.append(ecam_T)
     
 
-    assert 0
-
+    for i, eimg_f in enumerate([eimg_fs[idx1], eimg_fs[idx2]]):
+        eimg = cv2.imread(eimg_f)
+        _, proj_eimg = proj_3d_pnts(eimg, ecam_K, np.concatenate([ecam_Rs[i], ecam_Ts[i]], axis=1), objpoints, dist_coeffs=ecam_D)
+        cv2.imwrite(osp.join(output_dir, osp.basename(eimg_f)), proj_eimg)
+    
+    for i, img_idx in enumerate([idx1+1, idx2+1]):
+        img_f = manager.get_img_f(img_idx)
+        img = cv2.imread(img_f)
+        rgb_K, rgb_D = manager.get_intrnxs()
+        drawn_img = proj_3d_pnts(img, rgb_K, manager.get_extrnxs(img_idx), objpoints, dist_coeffs=rgb_D)[1]
+        cv2.imwrite(osp.join(output_dir, f"rgb_{osp.basename(img_f)}"), drawn_img)
 
 def save_blur_imgs(colmap_dir):
     import shutil
@@ -503,24 +504,17 @@ def save_blur_imgs(colmap_dir):
         shutil.copy(img_f, save_f)
 
 if __name__ == "__main__":
-    scene="boardroom_b1_v1"
+    scene="calib_v7"
     # scene="sofa_soccer_dragon"
     colmap_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/{scene}_recon"
     work_dir = f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}"
 
     # output_dir = osp.join(SAVE_DIR, osp.basename(osp.dirname(colmap_dir)))
     output_dir = osp.join(SAVE_DIR, "_".join(osp.basename(colmap_dir).split("_")[:-1]))
-    use_checker=True
-    select_triag_pnts(colmap_dir, output_dir, use_score=False, use_checker=use_checker)
+    use_checker=False
+    rgb_ids = select_triag_pnts(colmap_dir, output_dir, use_score=False, use_checker=use_checker)
     triangulate_points(**load_output_dir(output_dir), output_dir=output_dir)
-    select_3d_checker_coords(output_dir, use_checker=use_checker)
-    find_scale(output_dir)
-    # pnp_find_rel_cam(output_dir, osp.dirname(colmap_dir))
-    # proj_imgs(output_dir, colmap_dir)
-    # scale_opt(output_dir, work_dir, colmap_dir)
-
-
-    #### calc all images scores ###
-    # save_blur_imgs(colmap_dir)
-
+    # select_3d_checker_coords(output_dir, use_checker=use_checker)
+    # find_scale(output_dir)
     
+    scale_opt(output_dir, work_dir, colmap_dir, rgb_ids=rgb_ids)
