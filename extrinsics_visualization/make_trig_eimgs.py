@@ -64,6 +64,7 @@ if __name__ == "__main__":
     # parser.add_argument("-o", "--output", help="output directory", default=f"/scratch-ssd/workdir/{scene}/trig_eimgs")
     # parser.add_argument("-w", "--workdir", help="directory used to create the scene", default=f"/scratch-ssd/workdir/{scene}")
     args = parser.parse_args()
+    scene = osp.basename(args.workdir)
 
     events = EventBuffer(args.input)
     triggers = read_triggers(args.trigger_f)
