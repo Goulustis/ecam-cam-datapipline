@@ -204,11 +204,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Turn a prophesee 3.0 h5 file to 2.0 h5 file for e2calib')
     parser.add_argument("-i", "--input", help="path to event h5 file", default="data/rgb_checker/events.h5")
     parser.add_argument("-o", "--output", help="path to processed h5 file", default=None)
-    parser.add_argument("-t", "--triggers", help="path to trigger file", default="data/rgb_checker/triggers.txt")
+    # parser.add_argument("-t", "--triggers", help="path to trigger file", default="data/rgb_checker/triggers.txt")
+    parser.add_argument("-t", "--triggers", help="path to trigger file", default=None)
     args = parser.parse_args()
 
-    triggers = read_triggers(args.triggers)
-    st_t = triggers[0]
+    if args.triggers is None:
+        st_t = 0
+    else:
+        triggers = read_triggers(args.triggers)
+        st_t = triggers[0]
     
     if args.output is None:
         dir_name = osp.dirname(args.input)
