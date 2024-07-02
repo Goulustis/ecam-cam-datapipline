@@ -38,22 +38,14 @@ def proj_3d_pnts(img, intrinsics, extrinsics, pnts_3d, pnt_idxs=None, dist_coeff
 
     # Draw points and labels on the image
     if img is not None:
-        img_with_pnts = img.copy()
-        for i, p in enumerate(proj_pnts_2d):
-            try:
-                point = tuple(p[0].astype(int))
-                cv2.circle(img_with_pnts, point, 5, (0, 255, 0), -1)
-                if pnt_idxs is not None:
-                    cv2.putText(img_with_pnts, str(pnt_idxs[i]), (point[0] + 10, point[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            except Exception as e:
-                print("ERROR:", e)
+        img_with_pnts = draw_2d_pnts(img, proj_pnts_2d)
     else:
         img_with_pnts = img
 
     return proj_pnts_2d, img_with_pnts
 
 
-def draw_2d_pnts(img, pnts_2d, pnt_idxs):
+def draw_2d_pnts(img, pnts_2d, pnt_idxs=None):
     """
     Draw 2D points and their indices on an image.
 
@@ -62,6 +54,9 @@ def draw_2d_pnts(img, pnts_2d, pnt_idxs):
     pnts_2d (np.array): Array of 2D points (n, 2).
     pnt_idxs (np.array): Array of point indices.
     """
+    pnts_2d = pnts_2d.squeeze()
+    pnts_2d = pnts_2d[None] if len(pnts_2d.shape) == 1 else pnts_2d
+    pnt_idxs = list(range(len(pnts_2d))) if pnt_idxs is None else pnt_idxs
     # Create a copy of the image to draw on
     img_with_pnts = img.copy()
 
@@ -70,7 +65,7 @@ def draw_2d_pnts(img, pnts_2d, pnt_idxs):
         x, y = int(point[0]), int(point[1])
 
         # Draw the point
-        cv2.circle(img_with_pnts, (x, y), 5, (0, 255, 0), -1)
+        cv2.circle(img_with_pnts, (x, y), 3, (0, 255, 0), -1)
 
         # Draw the index
         cv2.putText(img_with_pnts, str(idx), (x + 10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
