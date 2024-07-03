@@ -171,6 +171,9 @@ class EcamSceneManager(ColcamSceneManager):
             self.ts = self.prev_ts
         else:
             self.ts = self.load_ts(self.cam_fs)  # this one is slightly meaningless
+        
+        if not osp.exists(osp.join(self.data_dir, "camera")):
+            self.cam_fs = self.prev_cam_fs
 
     def __len__(self):
         return min(len(self.cam_fs), len(self.eimgs))
