@@ -7,6 +7,7 @@ import numpy as np
 import shutil
 import glob
 import json
+import sys
 
 from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 from format_data.format_utils import EventBuffer, read_triggers
@@ -51,7 +52,7 @@ def load_scale_factor(ev_f):
 
 if __name__ == "__main__":
     MAKE_EIMG=True
-    scene = "calib_v7"
+    scene = "office_new_b3"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file, expect start_trigger.txt", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
@@ -91,7 +92,12 @@ if __name__ == "__main__":
 
     if args.workdir is not None:
         ## make cameras
-        SCALE=load_scale_factor(args.input)
+        try:
+            SCALE=load_scale_factor(args.input)
+        except FileNotFoundError as e:
+            print(e)
+            print("This is fine if manual calibrating")
+            sys.exit(1)
         trig_ecam_set_dir = osp.join(osp.dirname(args.output), "trig_ecamset")
         eimgs_dir = osp.join(trig_ecam_set_dir, "eimgs")
         trig_ecam_dir = osp.join(trig_ecam_set_dir, "camera")
