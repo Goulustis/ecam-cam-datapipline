@@ -213,12 +213,13 @@ def find_clear_val_test(scene_manager, ignore_first=0, ignore_last = 5):
         blur_score = directional_blur_scores[antiblur_index]
         blur_scores.append(blur_score)
     
-    ids = np.argsort(blur_scores) + ignore_first
+    # ids = np.argsort(blur_scores) + ignore_first
+    ids = np.argsort(blur_scores)
     best = ids[-30:]
     np.random.shuffle(best)
     # best = list(str(x) for x in best)
 
-    # test, val = best[:15], best[15:]
+    # clear_image_idxs = [scene_manager.image_ids[e] for e in best]
     clear_image_idxs = [scene_manager.image_ids[e] for e in best]
     clear_ret_idxs = [ret_idxs[e] for e in best]
     return clear_ret_idxs[:15], clear_ret_idxs[15:]
