@@ -336,6 +336,8 @@ class ColcamSetManager:
 
         self.ref_cam = Camera.from_json(self.cam_fs[0])
 
+    def __len__(self):
+        return len(self.img_fs)
 
     def get_img_f(self,idx):
         return self.img_fs[idx]
