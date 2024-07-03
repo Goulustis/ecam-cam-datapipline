@@ -117,9 +117,13 @@ class ColcamSceneManager:
         self.cam_fs = sorted(glob.glob(osp.join(self.data_dir, "camera", "*.json")))
         self.img_shape = self.get_img(0).shape[:2]
         self.ts = self.load_ts(self.cam_fs)
+        self.image_ids = list(range(len(self.img_fs)))
     
     def get_img(self, idx):
         return cv2.imread(self.img_fs[idx])
+
+    def load_image(self, idx):
+        return self.get_img(idx)
 
     def get_intrnxs(self):
         return load_json_intr(self.cam_fs[0])
@@ -157,6 +161,7 @@ class EcamSceneManager(ColcamSceneManager):
         self.cam_fs = sorted(glob.glob(osp.join(self.data_dir, "camera", "*.json")))
         self.eimgs = np.load(osp.join(self.data_dir, "eimgs", "eimgs_1x.npy"), "r")
 
+        self.dataset_json_f = osp.join(self.data_dir, "dataset.json")
         prev_cam_dir = osp.join(self.data_dir, "prev_camera")
         if osp.exists(prev_cam_dir):
             self.prev_cam_fs = sorted(glob.glob(osp.join(prev_cam_dir, "*.json")))
