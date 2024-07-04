@@ -4,6 +4,7 @@ import cv2
 import glob
 import os.path as osp
 from tqdm import tqdm
+from utils.misc import parallel_map
 
 """
 create a video for corresponding videos; sanity check to make sure things are not broken
@@ -36,24 +37,31 @@ def img_concat(imgs):
 
 
 def main():
-    e_img_fs = sorted(glob.glob(osp.join("data/checker_RIGHT", "*")))
-    c_img_fs = sorted(glob.glob(osp.join("data/checker_LEFT", "*")))
+    e_img_fs = sorted(glob.glob(osp.join("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/lab_c1/trig_eimgs", "*")))
+    c_img_fs = sorted(glob.glob(osp.join("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/data_rgb/lab_c1_recons/images", "*")))
     n_frames = min(len(e_img_fs), len(c_img_fs))
 
     e_img_fs = e_img_fs[:n_frames]
     c_img_fs = c_img_fs[:n_frames]
 
-
-    vid = []
-    for i, (e_f, c_f) in tqdm(enumerate(zip(e_img_fs, c_img_fs)), desc="making vid", total=n_frames):
-        e_img = cv2.imread(e_f, cv2.IMREAD_COLOR)#[..., None]
-        c_img = cv2.imread(c_f, cv2.IMREAD_COLOR)#[..., None]
+    def concat_fn(inp):
+        i, e_f, c_f = inp
+        e_img = cv2.imread(e_f, cv2.IMREAD_COLOR)[..., ::-1]
+        c_img = cv2.imread(c_f, cv2.IMREAD_COLOR)[..., ::-1]
         vid_img = img_concat([e_img, c_img])
         cv2.putText(vid_img, str(i).zfill(4), (10, c_img.shape[0]-5), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 2, cv2.LINE_AA)
-        vid.append(vid_img)
+        return vid_img
+
+    vid = parallel_map(concat_fn,
+                       list(
+                           zip(
+                               list(range(min(len(e_img_fs), len(c_img_fs)))),
+                               e_img_fs, c_img_fs
+                           )
+                       ), desc="concatenating images", show_pbar=True)
     
-    vid = ImageSequenceClip(vid, fps=55)
-    vid.write_videofile("stereo.mp4")
+    vid = ImageSequenceClip(vid, fps=20)
+    vid.write_videofile("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/lab_c1/trig_stereo.mp4")
 
 if __name__ == "__main__":
     main()
