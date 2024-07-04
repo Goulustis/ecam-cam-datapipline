@@ -68,7 +68,7 @@ def draw_2d_pnts(img, pnts_2d, pnt_idxs=None):
         cv2.circle(img_with_pnts, (x, y), 3, (0, 255, 0), -1)
 
         # Draw the index
-        cv2.putText(img_with_pnts, str(idx), (x + 10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(img_with_pnts, str(idx), (x + 10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return img_with_pnts
 
