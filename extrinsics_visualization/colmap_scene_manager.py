@@ -321,6 +321,9 @@ class ColmapSceneManager:
     
 
     def get_found_cond(self, n_size):
+        """
+        return condition showing which image was recorded
+        """
         keys = sorted(list(int(k) for k in self.images.keys()))
         keys = np.array([k - 1 for k in keys if k - 1 < n_size]).astype(np.int32) # subtract 1 since colmap idx starts at 1
         cond = np.zeros(n_size, dtype=bool)
