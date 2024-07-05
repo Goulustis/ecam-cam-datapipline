@@ -33,7 +33,7 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
         idx1, idx2 = clear_idxs[1] + 1, clear_idxs[3] + 1
     else:
-        idx1, idx2 = -40, -30
+        idx1, idx2 = 500, 550
         # idx1, idx2 = 3, 54
     
     print("img used:", osp.basename(manager.get_img_f(idx1)), osp.basename(manager.get_img_f(idx2)))
@@ -452,16 +452,18 @@ def scale_opt(output_dir, work_dir, colmap_dir, rgb_ids):
 
     def loss_fn(scale):
         loss = 0
-        for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs[:1], pnts_2d[:1])):
+        for i, (rgb_extr, pnt_2d) in enumerate(zip(rgb_extrs, pnts_2d)):
             rgb_R, rgb_T = rgb_extr[:3,:3], rgb_extr[:3,3:]
             ecam_R, ecam_T = R@rgb_R, R@rgb_T + T*scale
-            proj_pnts = proj_3d_pnts(None, ecam_K, np.concatenate([ecam_R, ecam_T], axis=1), objpoints, dist_coeffs=ecam_D)[0]
+            proj_pnts = proj_3d_pnts(None, ecam_K, np.concatenate([ecam_R, ecam_T], axis=1), objpoints, dist_coeffs=ecam_D)[0].squeeze()
             loss = loss + ((proj_pnts - pnt_2d)**2).mean()
         
         return loss
     
     res = optimize.minimize(loss_fn, (0.158, ), method='Powell', bounds=[(0, None)])
     scale_solv = res.x[0]
+
+
     print("optim res:", res)
     print("optim scale:", scale_solv)
     with open(osp.join(colmap_dir, "colmap_scale.txt"), "w") as f:
@@ -506,7 +508,7 @@ def save_blur_imgs(colmap_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scene", default="calib_v7")
+    parser.add_argument("--scene", default="lab_c1")
     args = parser.parse_args()
     scene = args.scene
     
