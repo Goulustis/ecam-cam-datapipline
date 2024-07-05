@@ -337,8 +337,9 @@ if __name__ == "__main__":
 
     if args.delta_t is not None:
         prev_ts, next_ts = load_st_end_trigs(args.work_dir)
-        args.n_bins = int(np.round((next_ts[0] - prev_ts[0]))/args.delta_t) + 1
+        args.n_bins = int(np.ceil((next_ts[0] - prev_ts[0])/args.delta_t)) + 1
         print("n_bins changed to", args.n_bins)
+        print("new time", (next_ts[0] - prev_ts[0])/(args.n_bins - 1))
 
     main(args.work_dir, args.targ_dir, args.n_bins)
     # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1",
