@@ -22,12 +22,13 @@ from format_data.eimg_maker import ev_to_eimg
 from extrinsics_creator.create_rel_cam import apply_rel_cam, read_rel_cam
 from extrinsics_visualization.colmap_scene_manager import ColmapSceneManager
 
-# np.set_printoptions(precision=4)
 
 
-# COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_checker_recons/sparse/0/cameras.bin"
-COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_new_v4_recons/sparse/0/cameras.bin"
-PROPHESEE_CAM_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/intrinsics_prophesee.json"
+# COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/Videos/calib_new_v4_recons/sparse/0/cameras.bin"
+# PROPHESEE_CAM_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/intrinsics_prophesee.json"
+
+COLMAP_CAMERA_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/data_rgb/calib_v7_recons/sparse/0/cameras.bin"
+PROPHESEE_CAM_F="/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/rgb-evs-cam-drivers/intrinsics/ecam_K_v7.json"
 EDNERF_DATA_DIR="/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data"
 
 def load_txt(scale_f):
@@ -316,17 +317,32 @@ def main(work_dir, targ_dir, n_bins = 4, cam_only=False):
     if not osp.exists(dst_f):
         shutil.copy(rel_json_f, dst_f)
 
+def none_or_int(value):
+    if value is None or value.lower() == 'none':
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid value: {value}. It should be 'None' or an integer.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--work_dir", type=str, default="")
     parser.add_argument("--targ_dir", type=str, default="")
     parser.add_argument("--n_bins", type=int, default=4)
+    parser.add_argument("--delta_t", type=none_or_int, default=None)
     parser.add_argument("--cam_only", type=bool, default=False, help="if true, will process camera only. no events or images will be copied/processed")
     args = parser.parse_args()
 
-    # main(args.work_dir, args.targ_dir, args.n_bins)
-    main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1",
-        #  "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/atrium_finer",
-         "debug",
-         args.n_bins,
-         cam_only=False)
+    if args.delta_t is not None:
+        prev_ts, next_ts = load_st_end_trigs(args.work_dir)
+        args.n_bins = int(np.round((next_ts[0] - prev_ts[0]))/args.delta_t) + 1
+        print("n_bins changed to", args.n_bins)
+
+    main(args.work_dir, args.targ_dir, args.n_bins)
+    # main("/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/atrium_b2_v1",
+    #     #  "/ubc/cs/research/kmyi/matthew/projects/E2NeRF/data/real-world/atrium_finer",
+    #      "debug",
+    #      args.n_bins,
+    #      cam_only=False)
