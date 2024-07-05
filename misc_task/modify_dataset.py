@@ -36,8 +36,8 @@ def change_col_dataset(colcam: ColcamSceneManager, test_find:int, unused: list =
                         "ids": list(all_ids),
                         "train_ids": list(train_ids),
                         "unused_ids": list(unused_ids),
-                        "val_ids": val_ids,
-                        "test_ids": test_ids
+                        "val_ids": sorted(val_ids),
+                        "test_ids": sorted(test_ids)
         }
 
         with open(ori_dataset_f, "w") as f:
