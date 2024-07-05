@@ -111,7 +111,8 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
             # idx1, idx2 = clear_idxs[0] + 1, 1730
             
         else:
-            idx1, idx2 = 19, 55
+            # idx1, idx2 = 19, 55
+            idx1, idx2 = -40, -30
 
         selector = ImagePointSelector([manager.get_img_f(idx1), manager.get_img_f(idx2)], save_dir=TMP_DIR)
         if not use_checker:
@@ -130,7 +131,7 @@ def load_objpnts(colmap_pnts_f, colmap_dir=None, calc_clear=False, use_checker=F
 
 def validate_ecamset():
     # scene = "halloween_b2_v1"
-    scene = "cs_building_v6"
+    scene = "lab_c1"
 
     objpnts_f = f"/scratch/matthew/projects/ecam-cam-datapipline/tmp/{scene}_triangulated.npy"
 
@@ -168,6 +169,18 @@ def validate_ecamset():
     
     def save_fn(inp):
         img, idx = inp
+        
+        # Get the original dimensions of the image
+        height, width = img.shape[:2]
+        
+        # Ensure dimensions are divisible by 2
+        new_width = width if width % 2 == 0 else width + 1
+        new_height = height if height % 2 == 0 else height + 1
+        
+        # Resize the image if necessary
+        if new_width != width or new_height != height:
+            img = cv2.resize(img, (new_width, new_height))
+        
         # Specify the font and color for the text
         font = cv2.FONT_HERSHEY_SIMPLEX
         color = (0, 0, 255)  # BGR for red
@@ -187,8 +200,8 @@ def validate_ecamset():
     with contextlib.suppress(FileNotFoundError):
         os.remove(save_f)
 
-    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 7500 {save_f}")
-    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 6050 {save_f}")
+    os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v libx264 -pix_fmt yuv420p -frames:v 7500 {save_f}")
+    # os.system(f"ffmpeg -framerate 16 -i {save_dir}/%06d.png -c:v h264_nvenc -preset fast -pix_fmt yuv420p -frames:v 6050 {save_f}")
     print("saved to", save_f)
 
 
