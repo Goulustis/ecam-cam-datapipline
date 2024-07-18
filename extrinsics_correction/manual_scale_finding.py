@@ -33,7 +33,7 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
         idx1, idx2 = clear_idxs[1] + 1, clear_idxs[3] + 1
     else:
-        idx1, idx2 = 500, 550
+        idx1, idx2 = 461, 524
         # idx1, idx2 = 3, 54
     
     print("img used:", osp.basename(manager.get_img_f(idx1)), osp.basename(manager.get_img_f(idx2)))
@@ -477,7 +477,7 @@ def scale_opt(output_dir, work_dir, colmap_dir, rgb_ids):
         ecam_R, ecam_T = R@rgb_R, R@rgb_T + T*scale_solv
         ecam_Rs.append(ecam_R), ecam_Ts.append(ecam_T)
     
-
+    ### project points for sanity checking
     for i, eimg_f in enumerate([eimg_fs[idx1], eimg_fs[idx2]]):
         eimg = cv2.imread(eimg_f)
         _, proj_eimg = proj_3d_pnts(eimg, ecam_K, np.concatenate([ecam_Rs[i], ecam_Ts[i]], axis=1), objpoints, dist_coeffs=ecam_D)
@@ -489,6 +489,12 @@ def scale_opt(output_dir, work_dir, colmap_dir, rgb_ids):
         rgb_K, rgb_D = manager.get_intrnxs()
         drawn_img = proj_3d_pnts(img, rgb_K, manager.get_extrnxs(img_idx), objpoints, dist_coeffs=rgb_D)[1]
         cv2.imwrite(osp.join(output_dir, f"rgb_{osp.basename(img_f)}"), drawn_img)
+    
+    img_f = manager.get_img_f(200)
+    img = cv2.imread(img_f)
+    rgb_K, rgb_D = manager.get_intrnxs()
+    drawn_img = proj_3d_pnts(img, rgb_K, manager.get_extrnxs(200), objpoints, dist_coeffs=rgb_D)[1]
+    cv2.imwrite(osp.join(output_dir, f"rgb_extra_{osp.basename(img_f)}"), drawn_img)
 
 def save_blur_imgs(colmap_dir):
     import shutil
@@ -508,7 +514,7 @@ def save_blur_imgs(colmap_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scene", default="lab_c1")
+    parser.add_argument("--scene", default="dragon_max_v9")
     args = parser.parse_args()
     scene = args.scene
     
