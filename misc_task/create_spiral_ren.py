@@ -111,7 +111,9 @@ def create_and_save_dummy_frames(scene: ColcamSceneManager, targ_dir, n_dummies)
 
     for i in tqdm(range(1, n_dummies), desc="making dummy frames"):
         save_f = osp.join(targ_dir, str(i).zfill(5) + ".png")
-        os.symlink(targ_dummy_f, save_f)
+
+        if not osp.exists(save_f):
+            os.symlink(targ_dummy_f, save_f)
 
 
 
@@ -151,7 +153,7 @@ def create_spiral_render_data(src_dir:str, targ_dir:str = None):
     
     spiral_Ms = create_and_save_spiral(scene, osp.join(targ_dir, "camera"), n_views=len(scene))
     create_and_save_dummy_frames(scene, osp.join(targ_dir, "rgb/1x"), len(spiral_Ms))
-    create_and_save_dataset(len(spiral_Ms), src_dataset_f, targ_dir, n_ren=64)
+    create_and_save_dataset(len(spiral_Ms), src_dataset_f, targ_dir, n_ren=86)
 
     src_meta_f = osp.join(src_dir, "metadata.json")
     targ_meta_f = osp.join(targ_dir, "metadata.json")
@@ -161,6 +163,6 @@ def create_spiral_render_data(src_dir:str, targ_dir:str = None):
 
 
 if __name__ == "__main__":
-    src_dir = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/depth_var_1_lr_000000/colcam_set"
+    src_dir = "/ubc/cs/research/kmyi/matthew/projects/ed-nerf/data/daniel_v9/colcam_set"
 
     create_spiral_render_data(src_dir)
