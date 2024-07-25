@@ -52,7 +52,7 @@ def load_scale_factor(ev_f):
 
 if __name__ == "__main__":
     MAKE_EIMG=True
-    scene = "office_new_b3"
+    scene = "board_v13_t2_c2"
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input event file", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/processed_events.h5")
     parser.add_argument("-t", "--trigger_f", help="path to trigger.txt file, expect start_trigger.txt", default=f"/ubc/cs/research/kmyi/matthew/backup_copy/raw_real_ednerf_data/work_dir/{scene}/triggers.txt")
@@ -71,13 +71,13 @@ if __name__ == "__main__":
     triggers = read_triggers(args.trigger_f)
     manager = ColmapSceneManager(osp.join(args.workdir, f"{scene}_recon"))
     colcam_extrinsics = manager.get_all_extrnxs()
-    triggers = triggers[manager.get_found_cond(len(triggers))]
+    # triggers = triggers[manager.get_found_cond(len(triggers))]
 
     os.makedirs(args.output, exist_ok=True)
 
     t_shift = calc_t_shift(args.trigger_f)
     try:
-        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers + t_shift, exposure_time=5000, make_eimg=MAKE_EIMG)
+        eimgs, eimg_ts = create_eimg_by_triggers(events, triggers + t_shift, exposure_time=30000, make_eimg=MAKE_EIMG)
     except Exception as e:
         shutil.rmtree(args.output)
         print(e)
@@ -89,7 +89,6 @@ if __name__ == "__main__":
             write_flag = cv2.imwrite(save_f, eimg)
             assert write_flag, "write image failed"
     
-
     if args.workdir is not None:
         ## make cameras
         try:
@@ -106,6 +105,7 @@ if __name__ == "__main__":
         os.makedirs(trig_ecam_set_dir, exist_ok=True)
 
         if MAKE_EIMG:
+            eimgs = eimgs[manager.get_found_cond(len(triggers))]
             np.save(osp.join(eimgs_dir, "eimgs_1x.npy"), eimgs)
 
         
