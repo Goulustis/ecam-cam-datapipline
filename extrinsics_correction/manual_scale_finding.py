@@ -33,7 +33,7 @@ def select_triag_pnts(colmap_dir = None, output_dir=None, use_score=False, use_c
         clear_idxs = calc_clearness_score([manager.get_img_f(i+1) for i in range(len(manager))])[1]
         idx1, idx2 = clear_idxs[1] + 1, clear_idxs[3] + 1
     else:
-        idx1, idx2 = 461, 524
+        idx1, idx2 = 375, 409
         # idx1, idx2 = 3, 54
     
     print("img used:", osp.basename(manager.get_img_f(idx1)), osp.basename(manager.get_img_f(idx2)))
@@ -460,8 +460,10 @@ def scale_opt(output_dir, work_dir, colmap_dir, rgb_ids):
         
         return loss
     
+    print("initial loss:", loss_fn(0.158))
     res = optimize.minimize(loss_fn, (0.158, ), method='Powell', bounds=[(0, None)])
     scale_solv = res.x[0]
+    print("final loss:", loss_fn(scale_solv))
 
 
     print("optim res:", res)
@@ -514,7 +516,7 @@ def save_blur_imgs(colmap_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scene", default="dragon_max_v9")
+    parser.add_argument("--scene", default="oc_v11_t1")
     args = parser.parse_args()
     scene = args.scene
     
