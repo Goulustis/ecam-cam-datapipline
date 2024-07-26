@@ -38,7 +38,11 @@ def proj_3d_pnts(img, intrinsics, extrinsics, pnts_3d, pnt_idxs=None, dist_coeff
 
     # Draw points and labels on the image
     if img is not None:
-        img_with_pnts = draw_2d_pnts(img, proj_pnts_2d)
+        try:
+            img_with_pnts = draw_2d_pnts(img, proj_pnts_2d)
+        except:
+            print("projection error, but ignoring")
+            img_with_pnts = img
     else:
         img_with_pnts = img
 
@@ -153,10 +157,6 @@ class ColmapSceneManager:
         self.chosen_points = None
         self.pnts_2d=None
 
-        self.sample_pnt_fnc_dic = {"rnd": self.sample_points_rnd,
-                                   "reliable": self.sample_pnts_reliable}
-        self.sample_method = sample_method
-        self.sample_pnt_fnc = self.sample_pnt_fnc_dic[sample_method]
         self.max_images_id = max(list(self.images.keys()))
 
     def set_sample_method(self, method):
@@ -174,45 +174,9 @@ class ColmapSceneManager:
         return cv2.imread(img_f)
 
 
-    def sample_pnts_reliable(self, img_idx=None, sample_n_points=16):
-        # pnt_idxs = self.images[img_idx].point3D_ids
-        # val_cond = pnt_idxs != -1
-        # val_idxs = self.images[img_idx].point
-        # 
-        # for idx in val_idxs:
-        #     num_imgs.append(len(self.pnts_3d[idx].image_ids))
-        # ids = val_idxs_ids[val_cond]
-
-        #####################################################
-        ids = []
-        num_imgs = []
-        for k, pnt in self.pnts_3d.items():
-            ids.append(k)
-            num_imgs.append(len(pnt.image_ids))
-        
-        ids = np.array(ids)
-        #####################################################
-
-        num_imgs = np.array(num_imgs)
-        sorted_idxs = np.argsort(num_imgs)[::-1]
-        # return np.random.choice(ids[sorted_idxs[:len(ids)//2]], size=sample_n_points)
-        return np.random.choice(ids[sorted_idxs[:len(ids)//4]], size=sample_n_points)
 
     def __len__(self):
         return len(self.images)
-
-    def sample_points_rnd(self, img_idx, sample_n_points=16):
-        pnt_idxs = self.images[img_idx].point3D_ids
-        val_cond = pnt_idxs != -1
-
-        val_pnts = self.images[img_idx].xys[val_cond]
-        val_idxs = self.images[img_idx].point3D_ids[val_cond]
-        chosen_idxs = np.random.choice(len(val_idxs), size=sample_n_points)
-        self.chosen_points = {"idxs":val_idxs[chosen_idxs], 
-                              "xyzs": self.get_points_xyzs(val_idxs[chosen_idxs])}
-
-        self.pnts_2d = val_pnts
-        return self.chosen_points["idxs"]
 
 
     def get_extrnxs(self, img_idx=None, img_obj=None):
@@ -244,49 +208,22 @@ class ColmapSceneManager:
         """
         img_idx = colmap_img_idx
         """
-        assert img_idx > 0, "colmap img is 1 indexed!"
+        if img_idx > 0: 
+            print("colmap img is 1 indexed! Adding 1 to idx")
+            img_idx += 1
         return cv2.imread(self.get_img_f(img_idx))
 
     def get_all_imgs(self, read_img_fn=cv2.imread):
         return parallel_map(lambda f : read_img_fn(f), self.img_fs)
 
     def get_img_f(self, img_idx):
-        assert img_idx != 0, "colmap index starts from 1"
+        if img_idx == 0:
+            print("image_idx needs to be >=1, adding 1 as fix")
+            img_idx += 1
         if img_idx < 0:
             img_idx = self.max_images_id + img_idx
         return osp.join(self.img_dir, self.images[img_idx].name)
 
-    def view_img_points(self, img_idx, rnd=False, sample_n_points = 32, chosen_pnt_idxs = None):
-        """
-        view points in idx image
-        img_idx = colmap_idx
-        """
-        
-        if chosen_pnt_idxs is not None:
-            chosen_pnt_idxs = chosen_pnt_idxs if type(chosen_pnt_idxs) == np.ndarray else np.array(chosen_pnt_idxs)
-        elif self.chosen_points is None:
-            chosen_pnt_idxs = self.sample_pnt_fnc(img_idx, sample_n_points=sample_n_points)
-        
-        self.chosen_points = {"idxs": chosen_pnt_idxs,
-                              "xyzs": self.get_points_xyzs(chosen_pnt_idxs)}
-        
-        ## colmap idx is 1 index, img_fs is 0 indexed:: self.img_fs[img_idx - 1])
-        img, intrxs, extrxs, pnt_idxs, pnts_3d = cv2.imread(self.get_img_f(img_idx)),  \
-                                                 self.camera.intrxs, \
-                                                 self.get_extrnxs(img_idx), \
-                                                 self.chosen_points["idxs"], \
-                                                 self.chosen_points["xyzs"] 
-
-        img_3d = proj_3d_pnts(np.copy(img), intrxs, extrxs, pnts_3d, pnt_idxs)[1]
-
-        #### debug ####
-        # if self.pnts_2d is None:
-        #     _, pnt_idxs = self.get_points_xy(img_idx, chosen_pnt_idxs)
-        # img_2d = draw_2d_pnts(img, self.pnts_2d, pnt_idxs)
-
-        # comb_img = concat_imgs(img_3d, img_2d)
-        #### debug ####
-        return img_3d
         
 
     def get_points_xy(self, img_idx, chosen_idxs):
@@ -303,18 +240,6 @@ class ColmapSceneManager:
         return self.pnts_2d, pnt_idxs[pnt_cond]
 
 
-    def get_points_xyzs(self, pnt_idxs):
-        if type(pnt_idxs) == int:
-            idxs = np.array([[pnt_idxs]])
-
-        points = np.zeros((len(pnt_idxs), 3))
-
-        for i, idx in enumerate(pnt_idxs):
-            points[i] = self.pnts_3d[idx].xyz
-        
-        return points
-
-
     def get_img_id(self, img_idx):
         img_f = self.get_img_f(img_idx)
         return osp.basename(img_f).split(".")[0]
@@ -322,10 +247,10 @@ class ColmapSceneManager:
 
     def get_found_cond(self, n_size):
         """
-        return condition showing which image was recorded
+        return condition showing which image was registered
         """
-        keys = sorted(list(int(k) for k in self.images.keys()))
-        keys = np.array([k - 1 for k in keys if k - 1 < n_size]).astype(np.int32) # subtract 1 since colmap idx starts at 1
+        keys = np.array(sorted(list(int(k) for k in self.images.keys()))) - 1 # subtract 1 since colmap idx starts at 1
+        keys = keys[keys < n_size].astype(np.int32)
         cond = np.zeros(n_size, dtype=bool)
         cond[keys] = True
         return cond
